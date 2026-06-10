@@ -4,6 +4,69 @@ Append-only. Every session ends by adding an entry: date, phase, what was built,
 
 ---
 
+## 2026-06-10 — Phase 2: Admin
+
+**What was built:**
+
+Auth & routing:
+- `proxy.ts` (Next.js 16 middleware replacement): protects all `/admin/*` routes; redirects unauthenticated requests to `/admin/login?next=<path>`; cookie-aware using `@supabase/ssr`
+- `app/(admin)/admin/login/page.tsx`: client-side login form using `supabase.auth.signInWithPassword()`; redirects to `next` param after success
+- `app/(admin)/admin/layout.tsx`: navy header with nav (Dashboard / Clients / Completed); server component reads session
+- `app/api/admin/auth/logout/route.ts`: POST signOut + redirect to login
+
+Admin pages:
+- `app/(admin)/admin/page.tsx`: dashboard table — document list with status pills, comment badge (orange count bubble), last visit, copy-link, link to document
+- `app/(admin)/admin/d/[id]/page.tsx`: document detail page — status toggle, section editor, version list, comments panel, access log table
+- `app/(admin)/admin/d/[id]/_components/SectionEditor.tsx`: markdown import (splits on `##`), add/remove/reorder sections, save-as-new-version with note + visibility checkbox
+- `app/(admin)/admin/d/[id]/_components/VersionList.tsx`: per-version visibility toggle (show/hide from client)
+- `app/(admin)/admin/d/[id]/_components/CommentsPanel.tsx`: grouped by section, resolve toggle, export disputed sections button
+- `app/(admin)/admin/d/[id]/_components/StatusToggle.tsx`: live ↔ draft toggle + copy client link
+- `app/(admin)/admin/clients/page.tsx`: new document form + clients table with inline edit/delete
+- `app/(admin)/admin/clients/_components/NewDocumentForm.tsx`: auto-fills signer name/email from selected client
+- `app/(admin)/admin/clients/_components/ClientsManager.tsx`: full CRUD table with inline edit rows
+- `app/(admin)/admin/completed/page.tsx`: signed/archived docs with signer info, hash prefix, PDF download link, disabled v2 invoice stub
+
+Route Handlers (all protected by `requireAdmin()`):
+- `POST /api/admin/documents` — create document (generates unique slug)
+- `PATCH /api/admin/documents/[id]/status` — toggle live/draft; 409 on signed
+- `POST /api/admin/documents/[id]/versions` — save new version; 409 on signed
+- `POST /api/admin/documents/[id]/import-md` — parse markdown → sections; 409 on signed
+- `GET /api/admin/documents/[id]/export-comments` — download unresolved comments as .md
+- `PATCH /api/admin/versions/[id]` — toggle client visibility; 409 on signed parent doc
+- `PATCH /api/admin/comments/[id]` — resolve/unresolve comment; 409 on signed parent doc
+- `POST /api/admin/clients` — create client
+- `PATCH /api/admin/clients/[id]` — update client
+- `DELETE /api/admin/clients/[id]` — delete client (409 if client has documents via FK)
+
+Data layer additions:
+- `lib/data/access-log.ts`: `getAccessLogByDocumentId()`
+
+Scripts:
+- `scripts/create-admin.ts`: one-time script to upsert the admin Supabase Auth user
+
+**Key decisions:**
+- Admin Auth uses Supabase email/password — single account (`ADMIN_EMAIL` / `ADMIN_PASSWORD`); credentials stored in `.env` only
+- `proxy.ts` (not `middleware.ts`) per Next.js 16; placed at repo root (same level as `app/`)
+- All mutation routes check `doc.status === "signed" || doc.status === "archived"` and return 409 — enforced server-side independent of UI
+- Comment resolve toggle also returns 409 on signed docs for consistency with the blanket mutation guard
+- `DELETE /api/admin/clients/[id]` returns 409 (not 500) on FK violation code `23503` — client has documents attached
+- `export-comments` returns plain text if there are no unresolved comments; a `.md` attachment if there are
+- `StatusToggle` is a client component; document page server component passes initial status and re-renders on `window.location.reload()` after version save
+
+**Deferrals:**
+- `GET /api/admin/documents/[id]/executed-pdf` — referenced in completed page but not implemented yet (Phase 4: signing stores the PDF in storage, Phase 4 adds the download route)
+- Observability/logging on route handlers — Phase 5
+
+**Verification passed:**
+- `npm run typecheck` clean
+- `npm run lint` clean
+- `npm run test` 41/41 pass (36 existing + 5 new mutation-guard tests)
+- Admin user created in Supabase Auth: `ben@agenticarc.ai` (id: `5424e5e4-67c6-4e76-be28-2cdec1a9d9eb`)
+
+**Next step:** Phase 3 — Client View. `/p/[slug]` route, first-visit popup, section rendering, version bar, comments with autosave, draft PDF download.
+
+---
+
 ## 2026-06-10 — Phase 1: Schema & Seed
 
 **What was built:**

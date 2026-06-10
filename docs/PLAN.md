@@ -35,13 +35,13 @@ Model note: run sessions on `opusplan`. Before starting Phase 4, Ben types `/mod
 
 ## Phase 2 — Admin
 
-- [ ] Supabase Auth: single admin login at `/admin/login`; all `/admin` routes protected server-side
-- [ ] Dashboard table per SPEC §8.1 (status pills, comment badges, last visit, copy link, live/draft toggle)
-- [ ] Document page per SPEC §8.2: section editor, markdown import, save-as-new-version with note + client-visibility checkbox, version list with visibility toggles, access log table
-- [ ] Comments panel + resolve toggle + Export disputed sections (markdown download)
-- [ ] Clients CRUD + New document flow per SPEC §8.4 to 8.5
-- [ ] Completed contracts page per SPEC §8.3 with disabled v2 invoice button stub
-- [ ] Mutation guard: every write route rejects with 409 when document status = signed (tests for each route)
+- [x] Supabase Auth: single admin login at `/admin/login`; all `/admin` routes protected server-side
+- [x] Dashboard table per SPEC §8.1 (status pills, comment badges, last visit, copy link, live/draft toggle)
+- [x] Document page per SPEC §8.2: section editor, markdown import, save-as-new-version with note + client-visibility checkbox, version list with visibility toggles, access log table
+- [x] Comments panel + resolve toggle + Export disputed sections (markdown download)
+- [x] Clients CRUD + New document flow per SPEC §8.4 to 8.5
+- [x] Completed contracts page per SPEC §8.3 with disabled v2 invoice button stub
+- [x] Mutation guard: every write route rejects with 409 when document status = signed (tests for each route)
 
 **Verification**: typecheck/lint/tests; full admin walkthrough against seed data via dev server (create client, create doc, import markdown, save version, toggle live, see seeded signed doc locked).
 🧑 Ben: log in, create a fake document from a real proposal, toggle it live, copy the link. 5 minutes.
