@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+build/
+
+# Environment — NEVER commit .env files (only .env.example is committed)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test coverage
+coverage/

@@ -1,0 +1,42 @@
+{
+  "name": "aa-proposals",
+  "version": "1.0.0",
+  "description": "Secure proposal viewing, commenting, and e-signing for Agentic Arc AI.",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint app lib tests",
+    "test": "vitest run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AgenticBen/aa-proposals.git"
+  },
+  "keywords": [],
+  "author": "Ben Dudley <ben@agenticarc.ai>",
+  "license": "ISC",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.108.1",
+    "@tailwindcss/postcss": "^4.3.0",
+    "@types/node": "^25.9.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "autoprefixer": "^10.5.0",
+    "eslint-config-next": "^16.2.9",
+    "next": "^16.2.9",
+    "postcss": "^8.5.15",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "tailwindcss": "^4.3.0",
+    "typescript": "^6.0.3"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.5",
+    "@vitejs/plugin-react": "^6.0.2",
+    "eslint": "^9.39.4",
+    "vitest": "^4.1.8"
+  }
+}
