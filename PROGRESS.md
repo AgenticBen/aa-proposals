@@ -4,6 +4,42 @@ Append-only. Every session ends by adding an entry: date, phase, what was built,
 
 ---
 
+## 2026-06-10 — Phase 1: Schema & Seed
+
+**What was built:**
+- SQL migrations via Supabase MCP:
+  - `create_enums_and_tables`: `document_status` enum (draft/live/signed/archived), `ink_color` enum (black/blue/red), all 8 tables with FKs, unique constraints, indexes, and `set_updated_at` triggers
+  - `enable_rls_deny_anon`: RLS enabled + `FORCE ROW LEVEL SECURITY` on all tables; no anon policies = deny all by default; service_role bypasses RLS
+  - `create_storage_buckets`: `signatures` bucket (5MB, PNG only) + `executed-pdfs` bucket (50MB, PDF only), both private
+- `lib/utils/slug.ts`: `randomBase62(n)` with rejection sampling (no modulo bias), `kebabify()`, `generateSlug()`, `generateUniqueSlug()` with collision retry
+- `lib/utils/hash.ts`: `canonicalizeSections()` (sorted by order+id, alphabetical key order) + `hashSections()` (SHA-256 via Node `crypto`)
+- `lib/utils/markdown-to-sections.ts`: splits on `## ` headings, assigns UUIDs, discards pre-`##` content
+- Tests: 36 tests across 4 files — all pass
+- `seed/run.ts`: 2 clients (Elena/Healing Hands, Marcus/Northfield), 3 documents (draft/live/signed), fake 1×1 PNG + minimal PDF in storage, comment and access_log entries per doc; idempotent (cascades deletes on re-run)
+
+**Key decisions:**
+- `FORCE ROW LEVEL SECURITY` added alongside `ENABLE` — prevents table owner from bypassing RLS accidentally
+- `signatures` table uses `ON DELETE RESTRICT` (not cascade) so you can never accidentally delete a signed document's record; must explicitly delete signature first
+- `invoices.document_id` is nullable (`SET NULL` on doc delete) — a v2 invoice may exist after the proposal is archived
+- Slug suffix: 12-char base62 = 71 bits entropy (well above the 64-bit requirement in CLAUDE.md)
+- Section IDs in `markdownToSections` are UUIDs generated at import time — they will be stable for a given version's sections but change on re-import (which is correct; a new import = new version)
+- Seed client emails use `.local` TLD suffix to distinguish them from real addresses
+- `dotenv` loaded via `import "dotenv/config"` at top of seed script — works without `--env-file` flag
+
+**Deferrals:**
+- Supabase Auth (admin account) deferred to Phase 2
+- Storage bucket RLS policies (server uses service role; no policies needed now) — Phase 5 security review may tighten
+
+**Verification passed:**
+- `npm run seed` runs twice with identical success (idempotent)
+- All 36 tests pass
+- Anon key blocked on all 8 tables (0 rows returned, no policies = deny all)
+- `npm run typecheck` clean, `npm run lint` clean
+
+**Next step:** Phase 2 — Admin. Supabase Auth login at `/admin`, dashboard, document editor, comments panel, clients CRUD, mutation guard.
+
+---
+
 ## 2026-06-10 — Phase 0: Scaffold & Environment
 
 **What was built:**

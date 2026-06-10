@@ -8,12 +8,12 @@ Model note: run sessions on `opusplan`. Before starting Phase 4, Ben types `/mod
 
 ## Phase 0 — Scaffold & Environment
 
-- [ ] Initialize Next.js (TypeScript, App Router, Tailwind) in repo root; first commit includes `.gitignore` with `.env*` (except `.env.example`)
-- [ ] Generate `.env.example`; interview Ben for each value one at a time; write `.env` locally; confirm secrets never echoed
-- [ ] Tailwind theme with brand tokens; load Playfair Display + Inter via next/font; base layout (navy header bar, white canvas) renders
-- [ ] Supabase client wiring (`lib/db/`): server client (service role) + anon client; connection smoke test
-- [ ] `npm run typecheck`, `lint`, `test` scripts exist and pass (test runner installed with one placeholder test)
-- [ ] Copy `seed/sample-proposal.md` check: file exists; if missing, ask Ben for it now
+- [x] Initialize Next.js (TypeScript, App Router, Tailwind) in repo root; first commit includes `.gitignore` with `.env*` (except `.env.example`)
+- [x] Generate `.env.example`; interview Ben for each value one at a time; write `.env` locally; confirm secrets never echoed
+- [x] Tailwind theme with brand tokens; load Playfair Display + Inter via next/font; base layout (navy header bar, white canvas) renders
+- [x] Supabase client wiring (`lib/db/`): server client (service role) + anon client; connection smoke test
+- [x] `npm run typecheck`, `lint`, `test` scripts exist and pass (test runner installed with one placeholder test)
+- [x] Copy `seed/sample-proposal.md` check: file exists; if missing, ask Ben for it now
 
 **Verification**: dev server boots; branded empty homepage renders; secrets absent from git (`git log -p | grep -c SUPABASE` returns 0 matches for values).
 🧑 Ben: open localhost:3000, confirm fonts/colors look like the brand.
@@ -22,11 +22,11 @@ Model note: run sessions on `opusplan`. Before starting Phase 4, Ben types `/mod
 
 ## Phase 1 — Schema & Seed
 
-- [ ] Migrations for all tables in SPEC §3 (clients, documents, versions, comments, signatures, access_log, invoices, time_entries) with RLS enabled and policies: anon role has NO direct table access except where SPEC requires; all client-facing reads/writes go through server routes using scoped queries
-- [ ] Slug generator util (kebab title + 12-char base62 suffix) with collision retry + unit tests
-- [ ] Section canonicalization + SHA-256 hash util with unit tests (stable ordering, stable serialization)
-- [ ] Markdown-to-sections importer (`##` splitting) with unit tests
-- [ ] Seed script per SPEC §3 (2 clients, 3 documents incl. one fully signed with snapshot, hash, fake signature PNG, fake executed PDF)
+- [x] Migrations for all tables in SPEC §3 (clients, documents, versions, comments, signatures, access_log, invoices, time_entries) with RLS enabled and policies: anon role has NO direct table access except where SPEC requires; all client-facing reads/writes go through server routes using scoped queries
+- [x] Slug generator util (kebab title + 12-char base62 suffix) with collision retry + unit tests
+- [x] Section canonicalization + SHA-256 hash util with unit tests (stable ordering, stable serialization)
+- [x] Markdown-to-sections importer (`##` splitting) with unit tests
+- [x] Seed script per SPEC §3 (2 clients, 3 documents incl. one fully signed with snapshot, hash, fake signature PNG, fake executed PDF)
 
 **Verification**: `npm run seed` idempotent; unit tests pass; querying as anon key directly returns nothing from any table.
 🧑 Ben: none required.
