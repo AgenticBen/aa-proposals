@@ -50,12 +50,12 @@ Model note: run sessions on `opusplan`. Before starting Phase 4, Ben types `/mod
 
 ## Phase 3 — Client View
 
-- [ ] `/p/[slug]` route per SPEC §5: live/signed gating, branded inactive page for everything else
-- [ ] First-visit name popup + cookie + access_log writes on every visit (tests: no cookie → popup; cookie → logged silently)
-- [ ] Section rendering (sanitized markdown) in brand layout
-- [ ] Version bar + read-only prior-version viewing (only `visible_to_client` versions; banner on old versions; no comments/sign UI there)
-- [ ] Section comments with 800ms-debounce autosave + "Saved" microcopy; visible in admin panel immediately
-- [ ] Draft PDF download with DRAFT watermark (brand layout per SPEC §7)
+- [x] `/p/[slug]` route per SPEC §5: live/signed gating, branded inactive page for everything else
+- [x] First-visit name popup + cookie + access_log writes on every visit (tests: no cookie → popup; cookie → logged silently)
+- [x] Section rendering (sanitized markdown) in brand layout
+- [x] Version bar + read-only prior-version viewing (only `visible_to_client` versions; banner on old versions; no comments/sign UI there)
+- [x] Section comments with 800ms-debounce autosave + "Saved" microcopy; visible in admin panel immediately
+- [x] Draft PDF download with DRAFT watermark (brand layout per SPEC §7)
 
 **Verification**: typecheck/lint/tests; scripted walkthrough: fresh browser context → popup → name logged → comment autosaves → appears in admin → old version read-only → PDF downloads with watermark → dead/draft slug shows inactive page.
 🧑 Ben: open the live link in a private browser window, do the popup, leave a comment, download the PDF, check the access log shows your name. 10 minutes.

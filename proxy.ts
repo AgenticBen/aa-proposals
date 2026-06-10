@@ -8,7 +8,7 @@ import { createServerClient } from "@supabase/ssr";
  * Protects all /admin routes: unauthenticated requests are redirected to /admin/login.
  * Also refreshes the Supabase Auth session token so it stays alive across requests.
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Bypass: login page itself must always be accessible

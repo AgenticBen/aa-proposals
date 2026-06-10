@@ -20,6 +20,7 @@
   "author": "Ben Dudley <ben@agenticarc.ai>",
   "license": "ISC",
   "dependencies": {
+    "@react-pdf/renderer": "^4.5.1",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.1",
     "@tailwindcss/postcss": "^4.3.0",
@@ -32,6 +33,9 @@
     "postcss": "^8.5.15",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
+    "react-markdown": "^10.1.0",
+    "rehype-sanitize": "^6.0.0",
+    "remark-gfm": "^4.0.1",
     "tailwindcss": "^4.3.0",
     "typescript": "^6.0.3"
   },

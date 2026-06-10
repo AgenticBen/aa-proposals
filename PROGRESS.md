@@ -4,6 +4,70 @@ Append-only. Every session ends by adding an entry: date, phase, what was built,
 
 ---
 
+## 2026-06-10 — Phase 3: Client View
+
+**What was built:**
+
+Packages installed: `react-markdown` ^10, `rehype-sanitize` ^6, `remark-gfm` ^4, `@react-pdf/renderer` ^4.5.
+
+Data layer additions:
+- `lib/data/access-log.ts`: `createAccessLogEntry()`
+- `lib/data/comments.ts`: `getCommentsByVersionId()`, `createComment()`, `updateComment()`
+- `lib/data/versions.ts`: `getVisibleVersionsByDocumentId()`, `getVersionById()`
+
+Client-facing API routes (no auth required):
+- `POST /api/client/visit` — writes access_log row; rejects if doc is not live/signed
+- `POST /api/client/comments` — creates comment; rejects with 409 if doc is not live
+- `PATCH /api/client/comments/[id]` — updates comment body; rejects with 409 if doc not live
+- `GET /api/client/[slug]/pdf` — generates and streams draft PDF via `@react-pdf/renderer`; force-dynamic
+
+Client view:
+- `app/(client)/p/[slug]/page.tsx`: server component; gates on live/signed; resolves `?v=N` for old versions; reads `aa_visitor_name` cookie
+- `app/(client)/p/[slug]/not-found.tsx`: branded "This link isn't active" page (HTTP 404)
+- `_components/VisitorPopup.tsx`: fixed overlay modal; cannot dismiss without entering name; POSTs visit + sets 1yr SameSite=Lax cookie; reloads page
+- `_components/AccessLogger.tsx`: invisible client component; fires silent POST on mount for returning visitors
+- `_components/VersionBar.tsx`: shows current version date/note; dropdown navigates to `?v=N` for prior versions
+- `_components/SectionList.tsx`: renders all sections with `react-markdown` + `rehype-sanitize` + `remark-gfm`; `CommentBox` per section with 800ms debounce autosave; "Saved" microcopy; shows comment indicator dot when a comment exists
+
+PDF:
+- `lib/pdf/DraftProposal.tsx`: React PDF component (navy header band, section content, DRAFT footer on every page); `stripMarkdown()` util for plain-text PDF body; exports `renderDraftPDF(doc, version): Promise<Buffer>`
+
+**Key decisions:**
+- `proxy.ts` function renamed from `middleware` to `proxy` (Next.js 16 requires the named export to be `proxy` or a default export)
+- `@react-pdf/renderer` added to `serverExternalPackages` in `next.config.ts` so Turbopack doesn't attempt to bundle it client-side
+- `Buffer → new Uint8Array(buffer)` in the PDF route handler (Next.js `NextResponse` accepts `BodyInit`, which includes `Uint8Array` but not `Buffer` directly)
+- Cookie is set client-side (SameSite=Lax, 1yr, no HttpOnly) so CommentBox components can read the visitor name without a server round-trip
+- After popup submission, `window.location.reload()` is used; on next render the server reads the cookie and switches from `VisitorPopup` to `AccessLogger`
+- Comments are always associated with the current visible version's ID, even when the user is viewing an older version (comment UI is hidden on old versions and signed docs)
+- `getCommentsByVersionId` loads all comments (not just unresolved); client sees their complete feedback thread
+- The debounce creates a new comment on first save; subsequent saves PATCH the same comment ID held in component state
+
+**Deferrals:**
+- Signing UI (consent checkbox, signature pad, confirm flow) — Phase 4
+- Executed PDF (post-signing) — Phase 4; draft PDF download is available on signed docs for now
+- Observability/logging on route handlers — Phase 5
+
+**Verification passed:**
+- `npm run typecheck` clean
+- `npm run lint` clean
+- `npm run test` 58/58 pass (41 existing + 17 new)
+- `/p/nonexistent` → 404 ✓
+- `/p/draft-slug` → 404 ✓
+- `/p/live-slug` → 200 (popup shown without cookie) ✓
+- `/p/live-slug` with cookie → 200 (AccessLogger renders, no popup) ✓
+- `/p/signed-slug` → 200 (signed banner shown) ✓
+- `POST /api/client/visit` → `{ok:true}` + row in access_log ✓
+- `POST /api/client/comments` → `{id:...}` 201 + row in comments ✓
+- `PATCH /api/client/comments/[id]` → `{ok:true}` 200 + body updated ✓
+- `POST /api/client/comments` on draft doc → 409 ✓
+- `GET /api/client/[slug]/pdf` → 200 + `application/pdf` ✓
+- `GET /api/client/draft-slug/pdf` → 404 ✓
+- `/p/live-slug?v=1` → 200 (old version banner shown) ✓
+
+**Next step:** Phase 4 — Signing. Consent checkbox, `signature_pad` canvas, atomic signing route, executed PDF, Resend emails. Run on Fable/Opus per PLAN.md.
+
+---
+
 ## 2026-06-10 — Phase 2: Admin
 
 **What was built:**
