@@ -80,10 +80,10 @@ Model note: run sessions on `opusplan`. Before starting Phase 4, Ben types `/mod
 
 ## Phase 5 — Polish, Review, Deploy
 
-- [ ] Loading/empty/error states across admin + client; mobile pass on `/p/[slug]` (clients will open links on phones)
-- [ ] Run the `security-reviewer` subagent against `docs/REVIEW.md`; fix every Critical and High finding; record findings + fixes in PROGRESS.md
-- [ ] Vercel: create project from repo, set production env vars (walk Ben through pasting values into Vercel dashboard), `APP_URL=https://proposals.agenticarc.ai`
-- [ ] Walk Ben through the IONOS CNAME for `proposals` → Vercel; confirm domain green
+- [x] Loading/empty/error states across admin + client; mobile pass on `/p/[slug]` (clients will open links on phones)
+- [x] Run the `security-reviewer` subagent against `docs/REVIEW.md`; fix every Critical and High finding; record findings + fixes in PROGRESS.md
+- [x] Vercel: create project from repo, set production env vars (walk Ben through pasting values into Vercel dashboard), `APP_URL=https://proposals.agenticarc.ai`
+- [x] Walk Ben through the IONOS CNAME for `proposals` → Vercel; confirm domain green (DNS was already pointing correctly)
 - [ ] Production smoke test: seed a real-looking doc, full client flow + signing on the production URL with Ben's email
 - [ ] Tag `v1.0.0`
 

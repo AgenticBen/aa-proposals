@@ -1,5 +1,57 @@
 # PROGRESS.md — Session Log
 
+---
+
+## 2026-06-11 — Phase 5: Polish & Security (in progress)
+
+**What was built:**
+
+Vercel / deploy:
+- Project already existed (`prj_eaNdkCow9TnOlrGGNlkTwQpKVgdv`) with all 8 env vars set. `APP_URL` was blank — updated to `https://proposals.agenticarc.ai`
+- `proposals.agenticarc.ai` DNS was already pointing to Vercel (CNAME → `cb42da2940dbabe2.vercel-dns-017.com`), SSL green, 200 OK
+- `.vercel/project.json` written locally to link CLI
+
+Loading / error states:
+- `app/(admin)/admin/loading.tsx` — table row skeletons
+- `app/(admin)/admin/error.tsx` — error boundary with Try Again
+- `app/(admin)/admin/d/[id]/loading.tsx` — document page skeleton
+- `app/(admin)/admin/clients/loading.tsx` — clients page skeleton
+- `app/(admin)/admin/completed/loading.tsx` — completed page skeleton
+- `app/(client)/p/[slug]/loading.tsx` — proposal page skeleton (navy band + section cards)
+- `app/(client)/p/[slug]/error.tsx` — branded error boundary
+
+Mobile pass:
+- Section cards and SignSection: `px-8 py-7` → `px-4 sm:px-8 py-6 sm:py-7` so 320–375px phones have adequate padding
+
+Security review ran against `docs/REVIEW.md` (all A–F items):
+
+| Item | Result |
+|------|--------|
+| A1–A3, A5 | PASS |
+| A4 | **FIXED** — `requireAdminPage()` added to admin dashboard, completed, and doc-detail server page components (was proxy-only) |
+| B1–B6 | PASS |
+| C1, C3 | PASS |
+| C2 | **FIXED** — Postgres triggers `trg_signed_document_lockout` (documents), `trg_version_signed_lockout` (versions), `trg_comment_signed_lockout` (comments) block mutations to signed docs at the DB level via migration `signed_document_lockout_triggers` |
+| D1–D3 | PASS |
+| E1, E3 | PASS |
+| E2 | **FIXED** — `author_name` ≤100, comment body ≤5000, `signer_name` ≤200 added to visit, comments POST, comments PATCH, and sign routes |
+| F1 | NOTED (Medium) — no rate limiting; no Vercel WAF rule or Upstash package added; acceptable for v1 with single-client usage |
+| F2, F3 | PASS |
+| F4 | N/A — requires Supabase dashboard; Ben must verify PITR is enabled |
+
+**Deferrals:**
+- F1 rate limiting — medium severity; acceptable at v1 scale (single consultant, known clients)
+- F4 backup verification — Ben checks Supabase dashboard → Settings → Backups
+- Observability/logging on route handlers — deferred from Phase 4, still deferred; Vercel function logs cover basic debugging
+
+**Verification so far:**
+- `npm run typecheck` clean, `npm run lint` clean, `npm run test` 66/66
+- Phase 5 commit pushed to main; Vercel auto-deploy in progress
+
+**Next step:** Wait for Vercel production deployment to finish, then Ben's production smoke test (full signing end-to-end on `https://proposals.agenticarc.ai`). Then `git tag v1.0.0 && git push --tags`.
+
+
+
 Append-only. Every session ends by adding an entry: date, phase, what was built, key decisions, deferrals, exact next step. Newest entry at the top.
 
 ---
