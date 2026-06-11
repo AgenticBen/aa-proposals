@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDocumentBySlug } from "@/lib/data/documents";
 import { getCurrentVisibleVersion } from "@/lib/data/versions";
 import { renderDraftPDF } from "@/lib/pdf/DraftProposal";
+import { getOrCreateExecutedPdf } from "@/lib/pdf/executed-pdf";
 
 export const dynamic = "force-dynamic";
 
 /**
  * GET /api/client/[slug]/pdf
- * Returns a draft PDF of the current visible version.
- * Available for live and signed documents.
- * Signed documents will still use this route in Phase 3; Phase 4 adds the executed PDF.
+ * Live documents: draft PDF of the current visible version (DRAFT watermark).
+ * Signed documents: the executed PDF (frozen snapshot + audit block).
  */
 export async function GET(
   _request: NextRequest,
@@ -22,6 +22,22 @@ export async function GET(
     return new NextResponse("Not found", { status: 404 });
   }
 
+  const safeName = slug.replace(/[^a-z0-9-]/gi, "-");
+
+  if (doc.status === "signed") {
+    const executed = await getOrCreateExecutedPdf(doc);
+    if (!executed) {
+      return new NextResponse("Not found", { status: 404 });
+    }
+    return new NextResponse(new Uint8Array(executed.pdf), {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="${safeName}-executed.pdf"`,
+        "Cache-Control": "no-store",
+      },
+    });
+  }
+
   const version = await getCurrentVisibleVersion(doc.id);
   if (!version) {
     return new NextResponse("No visible version", { status: 404 });
@@ -29,7 +45,6 @@ export async function GET(
 
   const buffer = await renderDraftPDF(doc, version);
 
-  const safeName = slug.replace(/[^a-z0-9-]/gi, "-");
   // NextResponse accepts Uint8Array; Buffer extends Uint8Array so this is safe
   return new NextResponse(new Uint8Array(buffer), {
     headers: {

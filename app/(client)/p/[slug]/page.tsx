@@ -3,10 +3,14 @@ import { cookies } from "next/headers";
 import { getDocumentBySlug } from "@/lib/data/documents";
 import { getVisibleVersionsByDocumentId } from "@/lib/data/versions";
 import { getCommentsByVersionId } from "@/lib/data/comments";
+import { getSignatureByDocumentId } from "@/lib/data/signatures";
 import { AccessLogger } from "./_components/AccessLogger";
 import { VisitorPopup } from "./_components/VisitorPopup";
 import { VersionBar } from "./_components/VersionBar";
 import { SectionList } from "./_components/SectionList";
+import { SignSection } from "./_components/SignSection";
+import { SignedSummary } from "./_components/SignedSummary";
+import { CONSENT_TEXT } from "@/lib/consent";
 import type { Section } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -65,13 +69,16 @@ export default async function ProposalPage({
   }
 
   // ── Data ─────────────────────────────────────────────────────────────────
+  const isSigned = doc.status === "signed";
+
   // Comments always belong to the current version (not the viewed old one)
-  const comments = await getCommentsByVersionId(currentVersion.id);
+  const [comments, signature] = await Promise.all([
+    getCommentsByVersionId(currentVersion.id),
+    isSigned ? getSignatureByDocumentId(doc.id) : Promise.resolve(null),
+  ]);
 
   const cookieStore = await cookies();
   const visitorName = cookieStore.get("aa_visitor_name")?.value ?? null;
-
-  const isSigned = doc.status === "signed";
 
   return (
     <>
@@ -115,7 +122,12 @@ export default async function ProposalPage({
               />
             </svg>
             <p className="text-sm text-green-800 font-medium">
-              This proposal has been signed. It is now read-only.
+              {signature
+                ? `Signed by ${signature.signer_name} on ${new Intl.DateTimeFormat("en-US", {
+                    timeZone: "America/New_York",
+                    dateStyle: "long",
+                  }).format(new Date(signature.signed_at))}. This proposal is now read-only.`
+                : "This proposal has been signed. It is now read-only."}
             </p>
           </div>
         )}
@@ -170,6 +182,19 @@ export default async function ProposalPage({
           isReadOnly={isViewingOldVersion || isSigned}
         />
 
+        {/* Sign section — only on the current version of a live document */}
+        {doc.status === "live" && !isViewingOldVersion && visitorName && (
+          <SignSection
+            documentId={doc.id}
+            consentText={CONSENT_TEXT}
+            prefillName={visitorName}
+            prefillEmail={doc.signer_email ?? ""}
+          />
+        )}
+
+        {/* Post-sign: signature image + audit summary */}
+        {isSigned && signature && <SignedSummary signature={signature} slug={slug} />}
+
         {/* Download PDF */}
         <div className="mt-10 pt-6 border-t border-gray-100">
           <a
@@ -192,7 +217,12 @@ export default async function ProposalPage({
             </svg>
             Download PDF
           </a>
-          {!isSigned && (
+          {isSigned ? (
+            <p className="mt-2 text-xs text-charcoal/50">
+              Downloads the executed proposal with the signature and audit
+              record.
+            </p>
+          ) : (
             <p className="mt-2 text-xs text-charcoal/50">
               This draft PDF carries a &ldquo;DRAFT — not executed&rdquo;
               watermark.

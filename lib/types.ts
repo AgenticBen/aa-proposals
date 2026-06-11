@@ -71,6 +71,10 @@ export interface Signature {
   user_agent: string | null;
   signed_at: string;
   executed_pdf: string | null;
+  /** When the executed-PDF emails were successfully sent; null = not yet */
+  email_sent_at: string | null;
+  /** Last email failure message, cleared on successful (re)send */
+  email_error: string | null;
 }
 
 export interface AccessLogEntry {

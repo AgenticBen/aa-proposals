@@ -101,26 +101,38 @@ async function main() {
   // 1. Idempotency: delete existing seed clients (cascades to all child rows)
   log("Cleaning up previous seed data...");
   for (const c of SEED_CLIENTS) {
-    const { data: existing } = await supabase
+    // select (not maybeSingle): duplicates from a failed prior cleanup must not
+    // error out silently — clean up every row matching the seed email
+    const { data: existingClients } = await supabase
       .from("clients")
       .select("id")
-      .eq("email", c.email)
-      .maybeSingle();
+      .eq("email", c.email);
 
-    if (existing) {
-      // Delete documents manually first (FK restrict on signatures prevents cascade)
+    for (const existing of existingClients ?? []) {
       const { data: docs } = await supabase
         .from("documents")
         .select("id")
         .eq("client_id", existing.id);
 
       for (const doc of docs ?? []) {
-        // Delete signatures first (references documents with ON DELETE RESTRICT)
-        await supabase.from("signatures").delete().eq("document_id", doc.id);
+        // signatures references documents with ON DELETE RESTRICT
+        const { error: sigErr } = await supabase
+          .from("signatures")
+          .delete()
+          .eq("document_id", doc.id);
+        if (sigErr) throw new Error(`Cleanup: signature delete failed: ${sigErr.message}`);
       }
 
-      // Now delete client (cascades to documents → versions, comments, access_log)
-      await supabase.from("clients").delete().eq("id", existing.id);
+      // documents.client_id is ON DELETE RESTRICT — delete documents explicitly
+      // (versions/comments/access_log cascade from documents)
+      const { error: docErr } = await supabase
+        .from("documents")
+        .delete()
+        .eq("client_id", existing.id);
+      if (docErr) throw new Error(`Cleanup: document delete failed: ${docErr.message}`);
+
+      const { error: cliErr } = await supabase.from("clients").delete().eq("id", existing.id);
+      if (cliErr) throw new Error(`Cleanup: client delete failed: ${cliErr.message}`);
       log(`  Deleted existing seed client: ${c.email}`);
     }
   }
@@ -296,6 +308,8 @@ async function main() {
     user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0) Seed/1.0",
     signed_at: signedAt,
     executed_pdf: pdfPath,
+    email_sent_at: signedAt,
+    email_error: null,
   });
 
   // Seed a resolved comment on the signed doc

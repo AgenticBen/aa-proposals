@@ -4,6 +4,59 @@ Append-only. Every session ends by adding an entry: date, phase, what was built,
 
 ---
 
+## 2026-06-10 — Phase 4: Signing
+
+**What was built:**
+
+Packages installed: `signature_pad` ^5.1, `resend` ^6.12.
+
+Schema (migration `add_signature_email_status` via Supabase MCP):
+- `signatures.email_sent_at timestamptz`, `signatures.email_error text` — records executed-email outcome so a failure can be retried from admin (SPEC §6.6 had no storage for this)
+
+Core signing:
+- `lib/consent.ts`: canonical `CONSENT_TEXT` constant — rendered in the UI, echoed back by the client, compared server-side (mismatch = 400), and stored verbatim on the signature row
+- `POST /api/client/sign` (`app/api/client/sign/route.ts`): the atomic transaction per SPEC §6. Payload carries signature data only (name, email, ink, consent echo, PNG data URL) — never content. Steps: validate → re-verify live+unsigned → **atomic claim** (`UPDATE documents SET status='signed' WHERE id=? AND status='live'`; zero rows = lost the race = 409) → freeze current visible version from DB → SHA-256 via `hashSections` → upload PNG to `signatures` bucket → insert signatures row → executed PDF → Resend emails → 201
+- Failure semantics: any failure before the signatures row persists reverts status to `live` (compensating update) and returns 500. After the row exists, nothing undoes the signature: PDF/email failures are recorded in `email_error` for admin retry
+- `lib/pdf/ExecutedProposal.tsx`: executed PDF — navy band, frozen sections, EXECUTED footer, final page with signature image (ink color) + audit block (signer name/email, signed_at ET, IP, SHA-256 hash, slug, consent text)
+- `lib/pdf/executed-pdf.ts`: `getOrCreateExecutedPdf()` — serves the stored PDF, or regenerates it from the frozen snapshot (`signature.version_id` + stored PNG) if missing/unreadable; used by client PDF route, admin download, and email retry (self-heals a failed generation)
+- `lib/email/executed.ts`: `sendExecutedEmails()` — one Resend send to `[signer_email, ADMIN_EMAIL]`, subject "Executed: {title} — Agentic Arc", PDF attached; never throws, returns outcome for `updateSignatureEmailStatus()`
+- `lib/data/signatures.ts`: `getSignatureByDocumentId()`, `updateSignatureEmailStatus()`
+
+Client view:
+- `_components/SignSection.tsx`: consent checkbox gates the pad (SPEC §5.5); signature_pad canvas with devicePixelRatio-aware sizing; ink picker black/blue/red; ✕ clear and ✓ confirm appear only after the first stroke (`endStroke` event); name (cookie) + email (`documents.signer_email`) prefilled and editable; completion popup "Thanks for signing! A copy … sent to {email}" → reload into signed state
+- `_components/SignedSummary.tsx`: post-sign signature image + audit summary (date ET, ink, full hash, consent text)
+- `GET /api/client/[slug]/signature`: streams the signature PNG from private storage (slug is the access token, signed docs only)
+- `GET /api/client/[slug]/pdf`: now serves the executed PDF on signed docs (`-executed.pdf` filename); draft PDF with watermark unchanged for live docs
+- Signed banner upgraded to "Signed by {name} on {date}"
+
+Admin:
+- `GET /api/admin/documents/[id]/executed-pdf`: download (was a dead link from Phase 2)
+- `POST /api/admin/documents/[id]/retry-email`: regenerates PDF if needed, resends, updates email status
+- Completed page: "Retry email" button shown when `email_sent_at` is null
+
+Tests (8 new, 66 total): draft doc → 409; already-signed → 409; no consent → 400 (and no claim attempted); tampered consent text → 400; **double-submit race** (claim matches 0 rows) → 409 with no signature insert; happy path asserts `content_hash === hashSections(DB snapshot)`, canonical consent text, both uploads, email status recorded; email failure → 201 with signature standing and error recorded; pre-persistence failure → 500 with status reverted to live.
+
+**Key decisions:**
+- The conditional status UPDATE is the concurrency lock (Supabase JS has no transactions). Snapshot is read AFTER winning the claim: once status=signed, every content-mutation route 409s, so the freeze is race-free against admin edits
+- Executed PDF generation failure does not fail the signing — recorded in `email_error`, and `getOrCreateExecutedPdf` regenerates from the frozen snapshot on next download/retry
+- One Resend send with both recipients in `to:` (same content, single failure to track/retry)
+- Consent text lives in `lib/consent.ts`; server stores its own constant, never the client's string (client echo is only an integrity check)
+- Fixed latent Phase 1 seed bug: `documents.client_id` FK is ON DELETE RESTRICT (not cascade as the cleanup assumed) and delete errors were unchecked — prior seed runs accumulated orphan duplicate docs/clients (3 "live" docs existed). Cleanup now deletes signatures → documents → client explicitly, checks every error, and handles duplicate seed clients. Stale rows purged from the DB
+
+**Deferrals:**
+- **Resend domain: `agenticarc.ai` is NOT yet verified in Resend** — sends from `proposals@agenticarc.ai` fail with a validation error (observed live, correctly recorded in `email_error`, retried successfully). Ben must add the DNS records at resend.com/domains before production (Phase 5 walks through IONOS DNS anyway). Email path proven end-to-end with the `onboarding@resend.dev` sandbox sender via the admin retry button
+- Storage bucket RLS tightening, observability/logging — Phase 5
+
+**Verification passed:**
+- `npm run typecheck` clean, `npm run lint` clean, `npm run test` 66/66
+- Live walkthrough on dev server against seed data: sign section + consent text render for named visitor; POST sign → 201, signatures row complete (hash, IP, UA, paths); double-submit → 409; signed page shows banner with name/date + signature image + audit summary; signature PNG streams (image/png); executed PDF downloads (3 pages; decoded text contains signer, SHA-256 hash, EXECUTED footer, consent language); client comment on signed doc → 409; admin status PATCH unauthenticated → 401; admin executed-pdf download (authenticated) → 200; **stored content_hash matches hash recomputed from the frozen DB snapshot**; retry-email route (authenticated, sandbox sender) → 200, `email_sent_at` set, `email_error` cleared, email received
+- Seed re-run twice — idempotent, no orphans; fresh live doc ready for Ben's manual check
+- NOT yet done: Ben's 🧑 manual check (sign end-to-end in a browser, receive both emails, confirm admin lockout) — blocked partly on Resend domain verification for real-address sends
+
+**Next step:** Ben's Phase 4 manual check (15 min) + verify `agenticarc.ai` in Resend. Then Phase 5 — polish, security review, deploy (return to `opusplan`).
+
+---
+
 ## 2026-06-10 — Phase 3: Client View
 
 **What was built:**

@@ -91,7 +91,7 @@ export async function getCompletedDocuments(): Promise<DocumentWithClient[]> {
   const supabase = createServerClient();
   const { data, error } = await supabase
     .from("documents")
-    .select(`*, clients(name, organization, email), signatures(signer_name, signer_email, signed_at, content_hash, executed_pdf)`)
+    .select(`*, clients(name, organization, email), signatures(signer_name, signer_email, signed_at, content_hash, executed_pdf, email_sent_at, email_error)`)
     .in("status", ["signed", "archived"])
     .order("updated_at", { ascending: false });
 

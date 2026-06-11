@@ -1,5 +1,6 @@
 import { getCompletedDocuments } from "@/lib/data/documents";
 import type { DocumentWithClient } from "@/lib/types";
+import { RetryEmailButton } from "./_components/RetryEmailButton";
 
 function formatDate(iso: string | null | undefined) {
   if (!iso) return "—";
@@ -32,6 +33,8 @@ interface CompletedDoc extends DocumentWithClient {
     signed_at: string;
     content_hash: string;
     executed_pdf: string | null;
+    email_sent_at: string | null;
+    email_error: string | null;
   }>;
 }
 
@@ -117,7 +120,7 @@ export default async function CompletedPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        {sig?.executed_pdf ? (
+                        {sig ? (
                           <a
                             href={`/api/admin/documents/${doc.id}/executed-pdf`}
                             className="font-body text-xs text-sky hover:underline"
@@ -126,6 +129,10 @@ export default async function CompletedPage() {
                           </a>
                         ) : (
                           <span className="font-body text-xs text-charcoal/30">No PDF</span>
+                        )}
+                        {/* Executed-email failure → retry (SPEC §6.6) */}
+                        {sig && !sig.email_sent_at && (
+                          <RetryEmailButton documentId={doc.id} />
                         )}
                         {/* Invoice stub — Phase v2 */}
                         <button
