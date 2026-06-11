@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getAllDocuments } from "@/lib/data/documents";
 import { CopyLinkButton } from "./_components/CopyLinkButton";
+import { requireAdminPage } from "@/lib/auth/require-admin-page";
 import type { DocumentWithClient } from "@/lib/types";
 
 function StatusPill({ status }: { status: string }) {
@@ -31,6 +32,7 @@ function formatDate(iso: string | null | undefined) {
 }
 
 export default async function AdminDashboard() {
+  await requireAdminPage();
   const documents = await getAllDocuments();
 
   return (

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { requireAdminPage } from "@/lib/auth/require-admin-page";
 import { getDocumentById } from "@/lib/data/documents";
 import { getVersionsByDocumentId, getLatestVersion } from "@/lib/data/versions";
 import { getCommentsByDocumentId } from "@/lib/data/comments";
@@ -27,6 +28,7 @@ export default async function DocumentPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  await requireAdminPage();
 
   const [doc, versions, comments, accessLog, latestVersion] = await Promise.all([
     getDocumentById(id),

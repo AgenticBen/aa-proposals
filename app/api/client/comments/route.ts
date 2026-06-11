@@ -28,10 +28,16 @@ export async function POST(request: NextRequest) {
     typeof version_id !== "string" ||
     typeof section_id !== "string" ||
     typeof author_name !== "string" ||
+    !author_name.trim() ||
+    author_name.trim().length > 100 ||
     typeof commentBody !== "string" ||
-    !commentBody.trim()
+    !commentBody.trim() ||
+    commentBody.trim().length > 5000
   ) {
-    return NextResponse.json({ error: "All fields are required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "All fields are required (name max 100 chars, comment max 5000 chars)" },
+      { status: 400 }
+    );
   }
 
   // Verify document exists and is live (comments not allowed on signed/draft)

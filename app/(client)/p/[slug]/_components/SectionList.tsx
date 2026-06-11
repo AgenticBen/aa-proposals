@@ -247,7 +247,7 @@ export function SectionList({
         return (
           <div
             key={section.id}
-            className="bg-white rounded-2xl border border-gray-100 shadow-sm px-8 py-7"
+            className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 sm:px-8 py-6 sm:py-7"
           >
             <h2 className="font-display text-2xl text-navy mb-4">
               {section.heading}

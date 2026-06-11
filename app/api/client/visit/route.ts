@@ -16,8 +16,13 @@ export async function POST(request: NextRequest) {
   }
 
   const { document_id, name } = body;
-  if (typeof document_id !== "string" || typeof name !== "string" || !name.trim()) {
-    return NextResponse.json({ error: "document_id and name are required" }, { status: 400 });
+  if (
+    typeof document_id !== "string" ||
+    typeof name !== "string" ||
+    !name.trim() ||
+    name.trim().length > 100
+  ) {
+    return NextResponse.json({ error: "document_id and name are required (name max 100 chars)" }, { status: 400 });
   }
 
   // Verify document exists and is accessible

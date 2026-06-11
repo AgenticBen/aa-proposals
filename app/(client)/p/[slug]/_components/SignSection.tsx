@@ -159,7 +159,7 @@ export function SignSection({ documentId, consentText, prefillName, prefillEmail
   }
 
   return (
-    <div className="mt-12 bg-white rounded-2xl border border-gray-100 shadow-sm px-8 py-7">
+    <div className="mt-12 bg-white rounded-2xl border border-gray-100 shadow-sm px-4 sm:px-8 py-6 sm:py-7">
       <p className="font-body text-xs uppercase tracking-widest font-bold text-cyan mb-2">
         Ready to proceed
       </p>

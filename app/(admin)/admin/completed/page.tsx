@@ -1,4 +1,5 @@
 import { getCompletedDocuments } from "@/lib/data/documents";
+import { requireAdminPage } from "@/lib/auth/require-admin-page";
 import type { DocumentWithClient } from "@/lib/types";
 import { RetryEmailButton } from "./_components/RetryEmailButton";
 
@@ -39,6 +40,7 @@ interface CompletedDoc extends DocumentWithClient {
 }
 
 export default async function CompletedPage() {
+  await requireAdminPage();
   const documents = (await getCompletedDocuments()) as CompletedDoc[];
 
   return (

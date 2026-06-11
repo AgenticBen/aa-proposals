@@ -21,8 +21,8 @@ export async function PATCH(
   }
 
   const { body: commentBody } = body;
-  if (typeof commentBody !== "string" || !commentBody.trim()) {
-    return NextResponse.json({ error: "body is required" }, { status: 400 });
+  if (typeof commentBody !== "string" || !commentBody.trim() || commentBody.trim().length > 5000) {
+    return NextResponse.json({ error: "body is required (max 5000 chars)" }, { status: 400 });
   }
 
   // Fetch the comment to get its document_id

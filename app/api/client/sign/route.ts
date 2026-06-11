@@ -55,11 +55,12 @@ export async function POST(request: NextRequest) {
     typeof document_id !== "string" ||
     typeof signer_name !== "string" ||
     !signer_name.trim() ||
+    signer_name.trim().length > 200 ||
     typeof signer_email !== "string" ||
     !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signer_email.trim())
   ) {
     return NextResponse.json(
-      { error: "document_id, signer_name, and a valid signer_email are required" },
+      { error: "document_id, signer_name (max 200 chars), and a valid signer_email are required" },
       { status: 400 }
     );
   }
