@@ -42,10 +42,11 @@ export default async function ProposalPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ v?: string }>;
+  searchParams: Promise<{ v?: string; preview?: string }>;
 }) {
   const { slug } = await params;
-  const { v } = await searchParams;
+  const { v, preview } = await searchParams;
+  const isAdminPreview = preview === "1";
 
   // ── Gating ──────────────────────────────────────────────────────────────
   const doc = await getDocumentBySlug(slug);
@@ -90,11 +91,28 @@ export default async function ProposalPage({
 
   return (
     <div className="bg-white min-h-screen font-body">
-      {/* ── Visitor management ── */}
-      {visitorName ? (
-        <AccessLogger documentId={doc.id} name={visitorName} />
-      ) : (
-        <VisitorPopup documentId={doc.id} />
+      {/* ── Admin preview banner ── */}
+      {isAdminPreview && (
+        <div className="sticky top-0 z-50 bg-navy border-b border-white/10 px-6 py-2 flex items-center justify-between gap-4">
+          <p className="font-body text-xs text-white/75">
+            Admin preview — this is how your client sees this proposal
+          </p>
+          <a
+            href="javascript:window.close()"
+            className="font-body text-xs text-white/50 hover:text-white transition-colors"
+          >
+            Close ✕
+          </a>
+        </div>
+      )}
+
+      {/* ── Visitor management — skip entirely in admin preview ── */}
+      {!isAdminPreview && (
+        visitorName ? (
+          <AccessLogger documentId={doc.id} name={visitorName} />
+        ) : (
+          <VisitorPopup documentId={doc.id} />
+        )
       )}
 
       {/* ── Cover band ── */}
@@ -255,8 +273,8 @@ export default async function ProposalPage({
         />
       </div>
 
-      {/* ── Sign ceremony — only on current version of a live doc with known visitor ── */}
-      {doc.status === "live" && !isViewingOldVersion && visitorName && (
+      {/* ── Sign ceremony — only on current version of a live doc with known visitor; never in preview ── */}
+      {doc.status === "live" && !isViewingOldVersion && visitorName && !isAdminPreview && (
         <SignSection
           documentId={doc.id}
           consentText={CONSENT_TEXT}

@@ -19,7 +19,7 @@ export function DocCardActions({ documentId, slug }: Props) {
   }
 
   function handlePreview() {
-    window.open(`/p/${slug}`, "_blank");
+    window.open(`/p/${slug}?preview=1`, "_blank");
   }
 
   return (

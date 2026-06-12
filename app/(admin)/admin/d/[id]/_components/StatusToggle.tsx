@@ -75,7 +75,7 @@ export function StatusToggle({ documentId, initialStatus, slug }: Props) {
       </button>
 
       <a
-        href={`/p/${slug}`}
+        href={`/p/${slug}?preview=1`}
         target="_blank"
         rel="noopener noreferrer"
         className="font-body text-sm font-medium border border-gray-200 text-charcoal px-4 py-2 rounded-xl hover:bg-gray-50 transition-colors"
