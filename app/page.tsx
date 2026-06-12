@@ -1,16 +1,25 @@
+import Image from "next/image";
+import Link from "next/link";
+
 export default function HomePage() {
   return (
-    <div className="mx-auto max-w-5xl px-6 py-20">
-      <p className="font-body text-xs uppercase tracking-[0.2em] font-bold text-cyan mb-4">
-        Agentic Arc AI
-      </p>
-      <h1 className="font-display text-5xl text-navy leading-tight mb-6">
-        Proposals
-      </h1>
-      <p className="font-body text-lg text-charcoal max-w-xl">
-        Secure proposal review and e-signing for Agentic Arc clients. If you
-        were sent a proposal link, use that link to access your document.
-      </p>
+    <div className="min-h-screen bg-navy flex flex-col items-center justify-center px-6">
+      <div className="text-center">
+        <Image
+          src="/brand/logo-light.png"
+          alt="Agentic Arc"
+          width={220}
+          height={45}
+          className="mx-auto mb-10"
+          priority
+        />
+        <Link
+          href="/admin/login"
+          className="inline-flex items-center gap-2 bg-cyan text-navy font-body font-semibold text-sm px-8 py-3.5 rounded-xl hover:bg-cyan/90 transition-colors"
+        >
+          Admin Login →
+        </Link>
+      </div>
     </div>
   );
 }

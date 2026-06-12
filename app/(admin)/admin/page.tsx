@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getAllDocuments } from "@/lib/data/documents";
-import { CopyLinkButton } from "./_components/CopyLinkButton";
+import { DocCardActions } from "./_components/DocCardActions";
 import { requireAdminPage } from "@/lib/auth/require-admin-page";
 import type { DocumentWithClient } from "@/lib/types";
 
@@ -13,15 +13,15 @@ function StatusPill({ status }: { status: string }) {
   };
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium font-body ${styles[status] ?? "bg-gray-100 text-gray-600"}`}
+      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium font-body ${styles[status] ?? "bg-gray-100 text-gray-600"}`}
     >
       {status}
     </span>
   );
 }
 
-function formatDate(iso: string | null | undefined) {
-  if (!iso) return "—";
+function formatLastVisit(iso: string | null | undefined) {
+  if (!iso) return null;
   return new Intl.DateTimeFormat("en-US", {
     timeZone: "America/New_York",
     month: "short",
@@ -41,7 +41,7 @@ export default async function AdminDashboard() {
         <h1 className="font-display text-3xl text-navy">Documents</h1>
         <Link
           href="/admin/clients"
-          className="bg-cyan text-navy font-body font-medium text-sm px-4 py-2 rounded-xl hover:bg-cyan/90 transition-colors"
+          className="bg-cyan text-navy font-body font-semibold text-sm px-5 py-2.5 rounded-xl hover:bg-cyan/90 transition-colors"
         >
           + New Document
         </Link>
@@ -49,97 +49,67 @@ export default async function AdminDashboard() {
 
       {documents.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
-          <p className="font-body text-charcoal/60">No documents yet.</p>
+          <p className="font-body text-charcoal/60 mb-4">No documents yet.</p>
           <Link
             href="/admin/clients"
-            className="mt-4 inline-block font-body text-sm text-sky hover:underline"
+            className="inline-flex items-center gap-1 font-body text-sm bg-navy text-white px-5 py-2.5 rounded-xl hover:bg-navy/90 transition-colors"
           >
             Create your first document →
           </Link>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-gray-100">
-                <th className="px-4 py-3 font-body text-xs uppercase tracking-wide text-charcoal/50 font-semibold">
-                  Title
-                </th>
-                <th className="px-4 py-3 font-body text-xs uppercase tracking-wide text-charcoal/50 font-semibold">
-                  Client
-                </th>
-                <th className="px-4 py-3 font-body text-xs uppercase tracking-wide text-charcoal/50 font-semibold">
-                  Status
-                </th>
-                <th className="px-4 py-3 font-body text-xs uppercase tracking-wide text-charcoal/50 font-semibold">
-                  Version
-                </th>
-                <th className="px-4 py-3 font-body text-xs uppercase tracking-wide text-charcoal/50 font-semibold">
-                  Comments
-                </th>
-                <th className="px-4 py-3 font-body text-xs uppercase tracking-wide text-charcoal/50 font-semibold">
-                  Last Visit
-                </th>
-                <th className="px-4 py-3 font-body text-xs uppercase tracking-wide text-charcoal/50 font-semibold">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {documents.map((doc: DocumentWithClient) => (
-                <tr key={doc.id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/admin/d/${doc.id}`}
-                      className="font-body text-sm font-medium text-navy hover:text-sky transition-colors"
-                    >
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          {documents.map((doc: DocumentWithClient) => {
+            const lastVisit = formatLastVisit(doc.last_visit);
+            const commentCount = doc.unresolved_comment_count ?? 0;
+
+            return (
+              <div
+                key={doc.id}
+                className="bg-white rounded-2xl border border-gray-200 p-5 flex flex-col"
+              >
+                {/* Top: status + client + title */}
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="min-w-0">
+                    <p className="font-body text-xs uppercase tracking-[0.15em] font-bold text-charcoal/40 mb-1 truncate">
+                      {doc.clients?.organization ?? doc.clients?.name ?? "—"}
+                    </p>
+                    <h3 className="font-display text-base text-navy leading-snug">
                       {doc.title}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 font-body text-sm text-charcoal">
-                    {doc.clients?.name}
-                    {doc.clients?.organization && (
-                      <span className="block text-xs text-charcoal/50">
-                        {doc.clients.organization}
+                    </h3>
+                  </div>
+                  <StatusPill status={doc.status} />
+                </div>
+
+                {/* Meta row */}
+                <div className="flex items-center gap-3 font-body text-xs text-charcoal/45 mb-4 flex-wrap">
+                  {lastVisit ? (
+                    <span>Last visit: {lastVisit}</span>
+                  ) : (
+                    <span>Not yet viewed</span>
+                  )}
+                  {commentCount > 0 && (
+                    <span className="inline-flex items-center gap-1">
+                      <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold">
+                        {commentCount}
                       </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusPill status={doc.status} />
-                  </td>
-                  <td className="px-4 py-3 font-body text-sm text-charcoal">
-                    {doc.latest_version != null ? `v${doc.latest_version}` : "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    {(doc.unresolved_comment_count ?? 0) > 0 ? (
-                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-orange-100 text-orange-700 text-xs font-bold font-body">
-                        {doc.unresolved_comment_count}
-                      </span>
-                    ) : (
-                      <span className="font-body text-sm text-charcoal/40">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 font-body text-sm text-charcoal/60">
-                    {formatDate(doc.last_visit)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href={`/admin/d/${doc.id}`}
-                        className="font-body text-xs text-sky hover:underline"
-                      >
-                        Open
-                      </Link>
-                      <CopyLinkButton slug={doc.slug} />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                      {commentCount === 1 ? "comment" : "comments"}
+                    </span>
+                  )}
+                  {doc.latest_version != null && (
+                    <span className="text-charcoal/30">v{doc.latest_version}</span>
+                  )}
+                </div>
+
+                {/* Actions — pushed to bottom */}
+                <div className="mt-auto">
+                  <DocCardActions documentId={doc.id} slug={doc.slug} />
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
-

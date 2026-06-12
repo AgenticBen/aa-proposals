@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 export default function NotFound() {
   return (
     <div
@@ -18,10 +20,14 @@ export default function NotFound() {
       </svg>
 
       <div className="relative text-center" style={{ maxWidth: 440 }}>
-        {/* Wordmark */}
-        <div className="flex items-center justify-center gap-1.5 mb-8">
-          <span className="font-display text-base font-semibold" style={{ color: "#51ADDF" }}>Agentic</span>
-          <span className="font-display text-base font-semibold text-white">Arc</span>
+        {/* Logo */}
+        <div className="flex justify-center mb-8">
+          <Image
+            src="/brand/logo-light.png"
+            alt="Agentic Arc"
+            width={180}
+            height={36}
+          />
         </div>
 
         <h1
