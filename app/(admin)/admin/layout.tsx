@@ -35,19 +35,28 @@ export default async function AdminLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
+  // No session → render children without sidebar (login page only reaches here)
+  if (!user) {
+    return (
+      <div className="min-h-screen font-body">{children}</div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen bg-gray-50 font-body">
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex flex-col w-56 bg-navy sticky top-0 h-screen shrink-0">
-        {/* Logo */}
+        {/* Logo — links to dashboard */}
         <div className="px-5 py-5 border-b border-white/10">
-          <Image
-            src="/brand/logo-light.png"
-            alt="Agentic Arc"
-            width={152}
-            height={31}
-            priority
-          />
+          <Link href="/admin">
+            <Image
+              src="/brand/logo-light.png"
+              alt="Agentic Arc"
+              width={152}
+              height={31}
+              priority
+            />
+          </Link>
           <span className="block font-body text-xs uppercase tracking-[0.18em] text-white/40 mt-2">
             Admin
           </span>
@@ -62,11 +71,9 @@ export default async function AdminLayout({
 
         {/* User + sign out */}
         <div className="p-4 border-t border-white/10">
-          {user && (
-            <p className="font-body text-xs text-white/40 mb-3 truncate">
-              {user.email}
-            </p>
-          )}
+          <p className="font-body text-xs text-white/40 mb-3 truncate">
+            {user.email}
+          </p>
           <form action="/api/admin/auth/logout" method="POST">
             <button
               type="submit"
@@ -83,13 +90,15 @@ export default async function AdminLayout({
         {/* Mobile top bar */}
         <header className="lg:hidden sticky top-0 z-10 bg-navy border-b border-white/10">
           <div className="flex items-center justify-between px-4 py-3">
-            <Image
-              src="/brand/logo-light.png"
-              alt="Agentic Arc"
-              width={120}
-              height={24}
-              priority
-            />
+            <Link href="/admin">
+              <Image
+                src="/brand/logo-light.png"
+                alt="Agentic Arc"
+                width={120}
+                height={24}
+                priority
+              />
+            </Link>
             <div className="flex items-center gap-1">
               <Link
                 href="/admin"

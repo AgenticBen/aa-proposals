@@ -11,11 +11,6 @@ import { createServerClient } from "@supabase/ssr";
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Bypass: login page itself must always be accessible
-  if (pathname === "/admin/login") {
-    return NextResponse.next();
-  }
-
   // Only intercept /admin paths
   if (!pathname.startsWith("/admin")) {
     return NextResponse.next();
@@ -45,12 +40,21 @@ export async function proxy(request: NextRequest) {
     }
   );
 
-  // getUser() validates the JWT server-side (no round-trip to Supabase on every request
-  // when the session is fresh; only network call on token refresh)
+  // Validate session server-side for every /admin request
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (pathname === "/admin/login") {
+    // Already authenticated — send to dashboard so they skip the login form
+    if (user) {
+      return NextResponse.redirect(new URL("/admin", request.url));
+    }
+    // Not authenticated — let them see the login page
+    return response;
+  }
+
+  // All other /admin routes require authentication
   if (!user) {
     const loginUrl = new URL("/admin/login", request.url);
     loginUrl.searchParams.set("next", pathname);
