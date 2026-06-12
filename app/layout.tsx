@@ -27,14 +27,6 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${playfair.variable} ${inter.variable}`}>
       <body className="font-body bg-white text-charcoal antialiased">
-        <header className="bg-navy">
-          <div className="mx-auto max-w-5xl px-6 py-4 flex items-center gap-3">
-            {/* Logo added in Phase 5 — public/brand/logo.svg */}
-            <span className="font-display text-xl text-white tracking-wide">
-              Agentic Arc
-            </span>
-          </div>
-        </header>
         <main>{children}</main>
       </body>
     </html>

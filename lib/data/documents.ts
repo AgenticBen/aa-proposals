@@ -73,17 +73,22 @@ export async function getDocumentById(id: string): Promise<DocumentWithClient | 
   };
 }
 
-/** Single document by slug (for client view). */
-export async function getDocumentBySlug(slug: string): Promise<Document | null> {
+/** Single document with client info by slug (for client proposal view). */
+export async function getDocumentBySlug(slug: string): Promise<DocumentWithClient | null> {
   const supabase = createServerClient();
   const { data, error } = await supabase
     .from("documents")
-    .select("*")
+    .select("*, clients(name, organization, email)")
     .eq("slug", slug)
     .maybeSingle();
 
   if (error) throw new Error(`getDocumentBySlug: ${error.message}`);
-  return data ? { ...data, status: data.status as DocumentStatus } : null;
+  if (!data) return null;
+  return {
+    ...data,
+    status: data.status as DocumentStatus,
+    clients: data.clients as DocumentWithClient["clients"],
+  };
 }
 
 /** Completed documents (signed or archived) for the Completed Contracts page. */

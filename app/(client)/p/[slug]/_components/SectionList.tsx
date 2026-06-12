@@ -7,49 +7,48 @@ import remarkGfm from "remark-gfm";
 import type { Section, Comment } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
-// Markdown component overrides — no tailwind/typography plugin needed
+// Markdown overrides — editorial prose style (Inter 17px, Playfair headings)
 // ---------------------------------------------------------------------------
 
 const MD_COMPONENTS: React.ComponentProps<typeof ReactMarkdown>["components"] = {
   h1: ({ children }) => (
-    <h1 className="font-display text-xl text-navy mt-4 mb-2">{children}</h1>
+    <h1 className="font-display text-2xl text-navy mt-6 mb-3" style={{ fontWeight: 600 }}>{children}</h1>
   ),
   h2: ({ children }) => (
-    <h2 className="font-display text-lg text-navy mt-4 mb-2">{children}</h2>
+    <h2 className="font-display text-xl text-navy mt-5 mb-2" style={{ fontWeight: 600 }}>{children}</h2>
   ),
   h3: ({ children }) => (
-    <h3 className="font-body font-semibold text-navy mt-3 mb-1">{children}</h3>
+    <h3 className="font-body font-semibold text-navy text-base mt-4 mb-1">{children}</h3>
   ),
   p: ({ children }) => (
-    <p className="mb-3 leading-relaxed last:mb-0">{children}</p>
+    <p className="mb-[18px] last:mb-0" style={{ lineHeight: 1.65 }}>{children}</p>
   ),
   ul: ({ children }) => (
-    <ul className="list-disc list-outside pl-5 mb-3 space-y-1">{children}</ul>
+    <ul className="list-disc list-outside pl-5 mb-[18px] space-y-2">{children}</ul>
   ),
   ol: ({ children }) => (
-    <ol className="list-decimal list-outside pl-5 mb-3 space-y-1">{children}</ol>
+    <ol className="list-decimal list-outside pl-5 mb-[18px] space-y-2">{children}</ol>
   ),
-  li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+  li: ({ children }) => <li style={{ lineHeight: 1.65 }}>{children}</li>,
   strong: ({ children }) => (
     <strong className="font-semibold text-navy">{children}</strong>
   ),
   em: ({ children }) => <em className="italic">{children}</em>,
   blockquote: ({ children }) => (
-    <blockquote className="border-l-4 border-sky pl-4 italic my-3 text-charcoal/70">
+    <blockquote
+      className="border-l-2 pl-5 italic my-5"
+      style={{ borderColor: "#51ADDF", color: "rgba(73,80,80,0.8)" }}
+    >
       {children}
     </blockquote>
   ),
   code: ({ children }) => (
-    <code className="bg-ivory px-1.5 py-0.5 rounded text-sm font-mono text-navy">
-      {children}
-    </code>
+    <code className="bg-ivory px-1.5 py-0.5 rounded text-sm font-mono text-navy">{children}</code>
   ),
   pre: ({ children }) => (
-    <pre className="bg-ivory rounded-lg p-4 overflow-x-auto text-sm font-mono mb-3">
-      {children}
-    </pre>
+    <pre className="bg-ivory rounded-xl p-4 overflow-x-auto text-sm font-mono mb-4">{children}</pre>
   ),
-  hr: () => <hr className="border-gray-200 my-4" />,
+  hr: () => <hr className="my-6" style={{ borderColor: "rgba(0,33,57,0.08)" }} />,
   a: ({ href, children }) => (
     <a
       href={href}
@@ -63,7 +62,7 @@ const MD_COMPONENTS: React.ComponentProps<typeof ReactMarkdown>["components"] = 
 };
 
 // ---------------------------------------------------------------------------
-// CommentBox
+// CommentBox — the ONE card-styled element in the editorial body
 // ---------------------------------------------------------------------------
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
@@ -74,18 +73,17 @@ function CommentBox({
   sectionId,
   visitorName,
   existingComment,
+  onClose,
 }: {
   documentId: string;
   versionId: string;
   sectionId: string;
   visitorName: string;
   existingComment: Comment | null;
+  onClose: () => void;
 }) {
-  const [isOpen, setIsOpen] = useState(false);
   const [text, setText] = useState(existingComment?.body ?? "");
-  const [commentId, setCommentId] = useState<string | null>(
-    existingComment?.id ?? null
-  );
+  const [commentId, setCommentId] = useState<string | null>(existingComment?.id ?? null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -134,78 +132,80 @@ function CommentBox({
     }
   }
 
-  const hasExistingComment = Boolean(existingComment?.body);
-
   return (
-    <div className="mt-4">
-      {/* Toggle button */}
-      <div className="flex justify-end">
-        <button
-          onClick={() => setIsOpen((o) => !o)}
-          className="flex items-center gap-1.5 text-xs text-sky hover:text-sky/70 transition-colors"
-          aria-expanded={isOpen}
+    <div
+      className="mt-6"
+      style={{
+        background: "#fff",
+        border: "1px solid rgba(0,33,57,0.1)",
+        borderRadius: 16,
+        padding: "20px 22px",
+        boxShadow: "0 2px 16px rgba(0,33,57,0.06)",
+        animation: "expandDown 0.15s ease-out",
+      }}
+    >
+      <style>{`@keyframes expandDown { from { transform: translateY(-6px); opacity: 0.6; } to { transform: none; opacity: 1; } }`}</style>
+      <div className="flex items-center justify-between mb-3">
+        <span
+          className="font-body font-bold uppercase"
+          style={{ fontSize: 11, letterSpacing: "0.14em", color: "#51ADDF" }}
         >
-          {/* Chat bubble icon */}
-          <svg
-            className="w-4 h-4 shrink-0"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.5}
-              d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
-            />
+          Comments
+        </span>
+        <button
+          onClick={onClose}
+          aria-label="Close comments"
+          className="text-charcoal/40 hover:text-charcoal transition-colors p-1 -mr-1"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
-          {isOpen ? (
-            <span>Close</span>
-          ) : hasExistingComment ? (
-            <span className="font-medium">View / edit comment</span>
-          ) : (
-            <span>Add comment</span>
-          )}
-          {/* Indicator dot when there's a comment and box is closed */}
-          {hasExistingComment && !isOpen && (
-            <span className="w-1.5 h-1.5 rounded-full bg-cyan inline-block" />
-          )}
         </button>
       </div>
 
-      {/* Expandable textarea */}
-      {isOpen && (
-        <div className="mt-3 pt-3 border-t border-gray-100">
-          <textarea
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-charcoal placeholder:text-charcoal/40 focus:outline-none focus:ring-2 focus:ring-sky/30 focus:border-sky resize-none transition-colors"
-            rows={3}
-            placeholder="Leave a note on this section…"
-            value={text}
-            onChange={(e) => handleTextChange(e.target.value)}
-            aria-label="Section comment"
-          />
-          <div className="mt-1 h-4 flex items-center">
-            {saveStatus === "saving" && (
-              <span className="text-xs text-charcoal/40">Saving…</span>
-            )}
-            {saveStatus === "saved" && (
-              <span className="text-xs text-sky">Saved</span>
-            )}
-            {saveStatus === "error" && (
-              <span className="text-xs text-red-500">
-                Couldn&apos;t save — please try again.
-              </span>
-            )}
-          </div>
+      {existingComment && (
+        <div
+          className="mb-4 pb-4"
+          style={{ borderBottom: "1px solid rgba(0,33,57,0.08)" }}
+        >
+          <p className="font-body text-xs font-semibold text-navy mb-1">{existingComment.author_name}</p>
+          <p className="font-body text-sm text-charcoal" style={{ lineHeight: 1.55 }}>
+            {existingComment.body}
+          </p>
         </div>
       )}
+
+      <textarea
+        className="w-full rounded-xl px-3 py-2.5 font-body text-sm text-charcoal placeholder:text-charcoal/35 resize-none focus:outline-none transition-colors"
+        style={{
+          border: "1px solid rgba(0,33,57,0.12)",
+          lineHeight: 1.6,
+        }}
+        rows={3}
+        placeholder="What would you like changed in this section?"
+        value={text}
+        onChange={(e) => handleTextChange(e.target.value)}
+        aria-label="Section comment"
+        onFocus={(e) => { e.currentTarget.style.borderColor = "#51ADDF"; }}
+        onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(0,33,57,0.12)"; }}
+      />
+      <div className="mt-1.5 h-4 flex items-center">
+        {saveStatus === "saving" && (
+          <span className="font-body text-xs" style={{ color: "rgba(73,80,80,0.5)" }}>Saving…</span>
+        )}
+        {saveStatus === "saved" && (
+          <span className="font-body text-xs text-sky">Saved</span>
+        )}
+        {saveStatus === "error" && (
+          <span className="font-body text-xs text-red-500">Could not save — please try again.</span>
+        )}
+      </div>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// SectionList (exported)
+// SectionList (exported) — editorial prose, no card wrapper
 // ---------------------------------------------------------------------------
 
 interface Props {
@@ -226,8 +226,8 @@ export function SectionList({
   isReadOnly,
 }: Props) {
   const sorted = [...sections].sort((a, b) => a.order - b.order);
+  const [openSection, setOpenSection] = useState<string | null>(null);
 
-  // Index the most recent comment per section_id
   const latestBySectionId = comments.reduce<Record<string, Comment>>(
     (acc, c) => {
       const existing = acc[c.section_id];
@@ -240,20 +240,79 @@ export function SectionList({
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-[60px]">
       {sorted.map((section) => {
         const existingComment = latestBySectionId[section.id] ?? null;
+        const hasComment = Boolean(existingComment?.body);
+        const isOpen = openSection === section.id;
+        const showTrigger = !isReadOnly && visitorName;
 
         return (
-          <div
-            key={section.id}
-            className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 sm:px-8 py-6 sm:py-7"
-          >
-            <h2 className="font-display text-2xl text-navy mb-4">
-              {section.heading}
-            </h2>
+          <section key={section.id} className="group">
+            {/* Section heading row — Playfair + hover-reveal comment icon */}
+            <div className="flex items-start justify-between gap-4 mb-5">
+              <h2
+                className="font-display text-navy"
+                style={{ fontWeight: 600, fontSize: "clamp(24px, 3vw, 28px)", lineHeight: 1.15 }}
+              >
+                {section.heading}
+              </h2>
 
-            <div className="text-charcoal text-[15px] leading-relaxed">
+              {showTrigger && (
+                <button
+                  onClick={() => setOpenSection(isOpen ? null : section.id)}
+                  aria-label={isOpen ? "Close comments" : "Add comment on this section"}
+                  aria-expanded={isOpen}
+                  className="flex-none transition-opacity"
+                  style={{
+                    width: 32,
+                    height: 32,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#51ADDF",
+                    position: "relative",
+                    opacity: isOpen || hasComment ? 1 : 0,
+                  }}
+                  // show on hover via the group class (handled by CSS below)
+                  data-comment-trigger="true"
+                >
+                  {hasComment ? (
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                    </svg>
+                  )}
+                  {hasComment && (
+                    <span
+                      className="absolute -top-0.5 -right-0.5 flex items-center justify-center rounded-full text-navy font-body font-bold"
+                      style={{
+                        minWidth: 16,
+                        height: 16,
+                        fontSize: 10,
+                        background: "#2CCBE6",
+                        padding: "0 3px",
+                        lineHeight: 1,
+                      }}
+                    >
+                      1
+                    </span>
+                  )}
+                </button>
+              )}
+            </div>
+
+            {/* Editorial prose body */}
+            <div
+              className="font-body text-charcoal"
+              style={{ fontSize: 17, lineHeight: 1.65 }}
+            >
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeSanitize]}
@@ -263,31 +322,41 @@ export function SectionList({
               </ReactMarkdown>
             </div>
 
-            {/* Read-only: show existing comment as a bubble */}
+            {/* Read-only: show existing comment as a quiet aside */}
             {isReadOnly && existingComment && (
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <div className="bg-ivory rounded-xl px-4 py-3">
-                  <p className="text-xs font-medium text-charcoal/50 mb-1">
-                    {existingComment.author_name}
-                  </p>
-                  <p className="text-sm text-charcoal">{existingComment.body}</p>
-                </div>
+              <div
+                className="mt-5 rounded-xl px-4 py-3"
+                style={{ background: "rgba(230,227,226,0.5)" }}
+              >
+                <p className="font-body text-xs font-semibold text-navy/60 mb-1">{existingComment.author_name}</p>
+                <p className="font-body text-sm text-charcoal" style={{ lineHeight: 1.55 }}>{existingComment.body}</p>
               </div>
             )}
 
-            {/* Interactive comment box — live docs only, visitor must have a name */}
-            {!isReadOnly && visitorName && (
+            {/* Interactive comment box (the ONE card element in the body) */}
+            {isOpen && !isReadOnly && visitorName && (
               <CommentBox
                 documentId={documentId}
                 versionId={versionId}
                 sectionId={section.id}
                 visitorName={visitorName}
                 existingComment={existingComment}
+                onClose={() => setOpenSection(null)}
               />
             )}
-          </div>
+          </section>
         );
       })}
+
+      {/* Hover-reveal style for desktop */}
+      <style>{`
+        @media (hover: hover) and (min-width: 760px) {
+          section.group [data-comment-trigger="true"] { opacity: 0; }
+          section.group:hover [data-comment-trigger="true"],
+          section.group [data-comment-trigger="true"][aria-expanded="true"],
+          section.group [data-comment-trigger="true"].has-count { opacity: 1 !important; }
+        }
+      `}</style>
     </div>
   );
 }

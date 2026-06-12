@@ -2,12 +2,6 @@
 
 import { useState, useRef, useEffect } from "react";
 
-/**
- * First-visit modal that asks for the visitor's name.
- * Cannot be dismissed without submitting.
- * On success: sets the aa_visitor_name cookie and reloads the page
- * so the server picks up the cookie for subsequent access logging.
- */
 export function VisitorPopup({ documentId }: { documentId: string }) {
   const [name, setName] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -38,7 +32,6 @@ export function VisitorPopup({ documentId }: { documentId: string }) {
 
       if (!res.ok) throw new Error("Failed to log visit");
 
-      // 1 year, SameSite=Lax — readable by client JS for comment author_name
       const expires = new Date();
       expires.setFullYear(expires.getFullYear() + 1);
       document.cookie = `aa_visitor_name=${encodeURIComponent(trimmed)}; expires=${expires.toUTCString()}; path=/; SameSite=Lax`;
@@ -51,27 +44,36 @@ export function VisitorPopup({ documentId }: { documentId: string }) {
   }
 
   return (
-    /* Fixed overlay — blocks all interaction until name is entered */
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-navy/60 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center px-6"
+      style={{ background: "rgba(0,33,57,0.78)", backdropFilter: "blur(3px)" }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="popup-heading"
     >
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-8">
-        <p className="font-body text-xs uppercase tracking-widest font-bold text-cyan mb-3">
-          Agentic Arc
+      <div
+        className="w-full"
+        style={{
+          background: "#fff",
+          borderRadius: 20,
+          boxShadow: "0 24px 80px rgba(0,33,57,0.35)",
+          maxWidth: 440,
+          padding: "36px 38px",
+        }}
+      >
+        <p
+          className="font-body font-bold uppercase mb-2.5"
+          style={{ fontSize: 11, letterSpacing: "0.18em", color: "#2CCBE6" }}
+        >
+          Welcome
         </p>
         <h2
           id="popup-heading"
-          className="font-display text-2xl text-navy mb-2"
+          className="font-display text-navy"
+          style={{ fontWeight: 600, fontSize: 27, lineHeight: 1.12, marginBottom: 18 }}
         >
-          Before you dive in…
+          Before you dive in, what&apos;s your name?
         </h2>
-        <p className="text-charcoal/70 text-sm mb-6 leading-relaxed">
-          What&apos;s your name? We&apos;ll use it to log your feedback on this
-          proposal.
-        </p>
 
         <form onSubmit={handleSubmit}>
           <input
@@ -79,25 +81,40 @@ export function VisitorPopup({ documentId }: { documentId: string }) {
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Your name"
+            placeholder="e.g. Maya Chen"
             disabled={submitting}
-            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-charcoal placeholder:text-charcoal/40 focus:outline-none focus:ring-2 focus:ring-sky/30 focus:border-sky transition-colors mb-2"
             aria-required="true"
+            className="w-full font-body text-sm text-charcoal placeholder:text-charcoal/35 rounded-xl transition-colors"
+            style={{
+              border: "1px solid rgba(0,33,57,0.15)",
+              padding: "12px 14px",
+              outline: "none",
+              marginBottom: 6,
+            }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = "#51ADDF"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(81,173,223,0.18)"; }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(0,33,57,0.15)"; e.currentTarget.style.boxShadow = "none"; }}
           />
 
           {error && (
-            <p className="text-red-500 text-xs mb-3" role="alert">
-              {error}
-            </p>
+            <p className="font-body text-xs text-red-500 mb-3" role="alert">{error}</p>
           )}
 
-          <button
-            type="submit"
-            disabled={submitting || !name.trim()}
-            className="w-full bg-navy text-white rounded-xl px-4 py-3 text-sm font-body font-medium hover:bg-navy/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {submitting ? "Just a moment…" : "Continue to proposal"}
-          </button>
+          <div style={{ marginTop: 22 }}>
+            <button
+              type="submit"
+              disabled={submitting || !name.trim()}
+              className="w-full font-body font-semibold text-sm rounded-xl transition-colors"
+              style={{
+                background: submitting || !name.trim() ? "rgba(44,203,230,0.5)" : "#2CCBE6",
+                color: "#002139",
+                padding: "13px 24px",
+                border: "none",
+                cursor: submitting || !name.trim() ? "not-allowed" : "pointer",
+              }}
+            >
+              {submitting ? "Just a moment…" : "Continue →"}
+            </button>
+          </div>
         </form>
       </div>
     </div>

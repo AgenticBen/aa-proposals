@@ -20,6 +20,9 @@
   "author": "Ben Dudley <ben@agenticarc.ai>",
   "license": "ISC",
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.83",
+    "@anthropic-ai/sdk": "^0.104.1",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@react-pdf/renderer": "^4.5.1",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.1",
@@ -27,6 +30,7 @@
     "@types/node": "^25.9.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "ai": "^6.0.202",
     "autoprefixer": "^10.5.0",
     "eslint-config-next": "^16.2.9",
     "next": "^16.2.9",

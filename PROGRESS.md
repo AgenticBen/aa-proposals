@@ -2,6 +2,48 @@
 
 ---
 
+## 2026-06-11 — Design implementation + Claude generation
+
+**What was built:**
+
+Design system implementation (from Claude Design handoff bundle):
+- `app/layout.tsx` — removed the generic `<header>` (conflicted with client page cover band; admin has its own)
+- `lib/data/documents.ts` — `getDocumentBySlug` now joins `clients` table, returns `DocumentWithClient` for cover band "Prepared for {org}" line
+- `app/(client)/p/[slug]/page.tsx` — full redesign: navy cover band with SVG arc texture, cyan "PROPOSAL" eyebrow, Playfair clamp title, status strip with VersionBar, editorial `space-y-[60px]` section layout (no cards), signed banner (cyan tint), navy footer
+- `_components/ActionsCluster.tsx` (new) — sticky PDF download button: fixed bottom-right on desktop, inline on mobile; white card with navy border and shadow
+- `_components/SectionList.tsx` — editorial redesign: removed card wrappers, hover-reveal comment icon via CSS `data-comment-trigger` attribute, Playfair section headings, single open CommentBox at a time, CommentBox is the only card element
+- `_components/VisitorPopup.tsx` — navy scrim modal with cyan "WELCOME" eyebrow, Playfair heading, cyan "Continue →" button
+- `_components/SignSection.tsx` — navy gradient band + centered white card; consent checkbox gates signature pad; 2-col name/email grid; ink picker with sky ring; ✕/✓ buttons appear after first stroke; completion popup with cyan check circle
+- `_components/VersionBar.tsx` — redesigned as status strip: version + date left, clock dropdown right, no navigation (dropdown only)
+- `app/(client)/p/[slug]/not-found.tsx` — navy full-page with arc texture, wordmark, Playfair "This link isn't active.", icy email link
+- `app/(client)/p/[slug]/loading.tsx` — updated skeleton to match cover band (navy gradient, icy shimmer) + editorial section placeholders (was old card-style skeleton)
+- `lib/pdf/DraftProposal.tsx` — upgraded: `parseMarkdown()` for bullet rendering, cover band in PDF, section divider lines, icy bullet dots, "DRAFT — NOT EXECUTED" red footer
+- `app/api/client/[slug]/pdf/route.ts` — passes client org to `renderDraftPDF`
+
+Claude generation:
+- `app/api/admin/documents/[id]/generate/route.ts` (new) — POST endpoint; calls `generateText` via `@ai-sdk/anthropic`; system prompt enforces Agentic Arc voice (no em dashes, sentence case, no hype, 8 standard sections); returns `{ markdown: string }`; protected by `requireAdmin()`; 409 on signed/archived
+- `app/(admin)/admin/d/[id]/_components/SectionEditor.tsx` — "Generate with AI" toolbar button + collapsible panel (description, services, budget); flow: generate → auto-populate import textarea → admin reviews → "Parse and replace sections"; loading spinner state
+- `.env.example` — added `ANTHROPIC_API_KEY` entry
+
+**Bug fixes:**
+- AI SDK v6 renamed `maxTokens` → `maxOutputTokens`; updated generate route
+- ESLint unescaped apostrophe in SignSection (`You'll` → `You&apos;ll`)
+- `@ai-sdk/anthropic` model IDs use hyphens (`claude-sonnet-4-6`), not dots; dots are only for the AI Gateway gateway string format
+
+**Verification:**
+- `npm run typecheck` clean, `npm run lint` clean, `npm run test` 66/66
+- Curl check on live proposal page: cover band, "Prepared for Northfield", PROPOSAL eyebrow, ActionsCluster — all present
+- `ANTHROPIC_API_KEY` must be set in `.env` before testing "Generate with AI" end-to-end
+
+**Pending:**
+- Test "Generate with AI" end-to-end in the browser (requires `ANTHROPIC_API_KEY` in `.env`)
+- Ben's production smoke test (full signing flow on `https://proposals.agenticarc.ai`, verify emails via Resend domain)
+- `git tag v1.0.0 && git push --tags` after smoke test passes
+
+**Next step:** Ben adds `ANTHROPIC_API_KEY` to `.env`, then tests Generate with AI in the admin editor at `/admin/d/[id]`. After that, production smoke test and tag.
+
+---
+
 ## 2026-06-11 — Phase 5: Polish & Security (in progress)
 
 **What was built:**

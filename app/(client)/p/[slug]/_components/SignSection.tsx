@@ -17,11 +17,6 @@ interface Props {
   prefillEmail: string;
 }
 
-/**
- * The signing block at the bottom of a live proposal (SPEC §5.5).
- * Consent checkbox gates the pad; ✕/✓ appear once drawing has begun;
- * ✓ posts the signing transaction and shows the completion popup.
- */
 export function SignSection({ documentId, consentText, prefillName, prefillEmail }: Props) {
   const [consented, setConsented] = useState(false);
   const [ink, setInk] = useState<InkColor>("black");
@@ -34,11 +29,8 @@ export function SignSection({ documentId, consentText, prefillName, prefillEmail
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const padRef = useRef<SignaturePad | null>(null);
-  // Latest ink for pad (re)creation — consent can be toggled off and back on
-  // after an ink was chosen, and the new pad must keep that choice
   const inkRef = useRef(ink);
 
-  // Create the pad when consent reveals the canvas; destroy when hidden
   useEffect(() => {
     if (!consented || !canvasRef.current) return;
 
@@ -47,8 +39,6 @@ export function SignSection({ documentId, consentText, prefillName, prefillEmail
     padRef.current = pad;
 
     const resize = () => {
-      // Keep the drawing buffer in sync with CSS size and pixel density.
-      // Resizing clears the canvas — acceptable; the signer redraws.
       const ratio = Math.max(window.devicePixelRatio || 1, 1);
       canvas.width = canvas.offsetWidth * ratio;
       canvas.height = canvas.offsetHeight * ratio;
@@ -70,7 +60,6 @@ export function SignSection({ documentId, consentText, prefillName, prefillEmail
     };
   }, [consented]);
 
-  // Ink change applies to subsequent strokes
   useEffect(() => {
     inkRef.current = ink;
     if (padRef.current) padRef.current.penColor = INK_HEX[ink];
@@ -85,10 +74,7 @@ export function SignSection({ documentId, consentText, prefillName, prefillEmail
   async function handleConfirm() {
     const pad = padRef.current;
     if (!pad || pad.isEmpty()) return;
-    if (!name.trim()) {
-      setError("Please enter your name.");
-      return;
-    }
+    if (!name.trim()) { setError("Please enter your name."); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       setError("Please enter a valid email address.");
       return;
@@ -110,11 +96,7 @@ export function SignSection({ documentId, consentText, prefillName, prefillEmail
           signature_png: pad.toDataURL("image/png"),
         }),
       });
-      const data = (await res.json()) as {
-        ok?: boolean;
-        email_sent?: boolean;
-        error?: string;
-      };
+      const data = (await res.json()) as { ok?: boolean; email_sent?: boolean; error?: string };
       if (!res.ok || !data.ok) {
         setError(
           res.status === 409
@@ -131,25 +113,51 @@ export function SignSection({ documentId, consentText, prefillName, prefillEmail
     }
   }
 
-  // ── Completion popup ───────────────────────────────────────────────────
+  // ── Completion popup ──────────────────────────────────────────────────────
   if (done) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/60 px-6">
-        <div className="bg-white rounded-2xl shadow-xl max-w-md w-full px-8 py-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-            <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center px-6"
+        style={{ background: "rgba(0,33,57,0.72)", backdropFilter: "blur(3px)" }}
+      >
+        <div
+          className="w-full text-center"
+          style={{
+            background: "#fff",
+            borderRadius: 20,
+            boxShadow: "0 24px 80px rgba(0,33,57,0.35)",
+            maxWidth: 440,
+            padding: "38px 38px 32px",
+          }}
+        >
+          <div
+            className="flex items-center justify-center mx-auto mb-5"
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: "50%",
+              background: "rgba(44,203,230,0.12)",
+              color: "#2CCBE6",
+            }}
+          >
+            <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="font-display text-2xl text-navy mb-2">Thanks for signing!</h2>
-          <p className="text-sm text-charcoal leading-relaxed">
+          <h2 className="font-display text-navy mb-2.5" style={{ fontWeight: 600, fontSize: 26 }}>
+            Thanks for signing!
+          </h2>
+          <p className="font-body text-charcoal mb-6" style={{ fontSize: 15, lineHeight: 1.6 }}>
             {done.emailSent
               ? `A copy of the executed proposal has been sent to ${done.email}.`
               : `Your signature has been recorded. The executed copy will be emailed to ${done.email} shortly.`}
           </p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-6 inline-flex items-center bg-cyan text-navy px-6 py-2.5 rounded-xl text-sm font-body font-semibold hover:bg-cyan/85 transition-colors"
+            className="w-full font-body font-semibold text-sm rounded-xl transition-colors"
+            style={{ background: "#2CCBE6", color: "#002139", padding: "13px 24px", border: "none", cursor: "pointer" }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#51ADDF"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#2CCBE6"; }}
           >
             View the executed proposal
           </button>
@@ -158,117 +166,190 @@ export function SignSection({ documentId, consentText, prefillName, prefillEmail
     );
   }
 
+  // ── Sign ceremony — full-width navy band with centered 560px card ─────────
   return (
-    <div className="mt-12 bg-white rounded-2xl border border-gray-100 shadow-sm px-4 sm:px-8 py-6 sm:py-7">
-      <p className="font-body text-xs uppercase tracking-widest font-bold text-cyan mb-2">
-        Ready to proceed
-      </p>
-      <h2 className="font-display text-2xl text-navy mb-5">Sign this proposal</h2>
+    <div
+      className="relative overflow-hidden"
+      style={{ background: "linear-gradient(135deg,#013a5e 0%,#002139 70%)" }}
+    >
+      {/* Arc texture */}
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 600 320"
+        preserveAspectRatio="xMaxYMax slice"
+        className="absolute inset-0 w-full h-full pointer-events-none"
+        style={{ opacity: 0.14 }}
+      >
+        <path d="M420 320 Q 560 200 600 60" fill="none" stroke="#9DE2F2" strokeWidth="1.5" />
+        <path d="M360 320 Q 530 180 600 20" fill="none" stroke="#9DE2F2" strokeWidth="1" />
+      </svg>
 
-      {/* Consent — gates everything below */}
-      <label className="flex items-start gap-3 cursor-pointer select-none">
-        <input
-          type="checkbox"
-          checked={consented}
-          onChange={(e) => setConsented(e.target.checked)}
-          className="mt-0.5 h-4 w-4 accent-[#51ADDF] shrink-0"
-        />
-        <span className="text-sm text-charcoal leading-relaxed">{consentText}</span>
-      </label>
+      <div className="relative mx-auto px-6 py-16 flex justify-center" style={{ maxWidth: 720 }}>
+        <div
+          className="w-full"
+          style={{
+            background: "#fff",
+            borderRadius: 20,
+            boxShadow: "0 24px 80px rgba(0,33,57,0.3)",
+            maxWidth: 560,
+            padding: "34px 38px",
+          }}
+        >
+          {/* Eyebrow */}
+          <p
+            className="font-body font-bold uppercase mb-2"
+            style={{ fontSize: 11, letterSpacing: "0.22em", color: "#2CCBE6" }}
+          >
+            Signature
+          </p>
+          <h2 className="font-display text-navy mb-6" style={{ fontWeight: 600, fontSize: 24, lineHeight: 1.1 }}>
+            Sign this proposal
+          </h2>
 
-      {consented && (
-        <div className="mt-6">
-          {/* Name + email */}
-          <div className="grid gap-4 sm:grid-cols-2 mb-5">
-            <div>
-              <label htmlFor="signer-name" className="block text-xs font-medium text-charcoal/60 mb-1">
-                Your full name
-              </label>
-              <input
-                id="signer-name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-sky/30 focus:border-sky"
-              />
-            </div>
-            <div>
-              <label htmlFor="signer-email" className="block text-xs font-medium text-charcoal/60 mb-1">
-                Your email (receives the executed copy)
-              </label>
-              <input
-                id="signer-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-charcoal focus:outline-none focus:ring-2 focus:ring-sky/30 focus:border-sky"
-              />
-            </div>
-          </div>
-
-          {/* Ink picker */}
-          <div className="flex items-center gap-3 mb-3">
-            <span className="text-xs font-medium text-charcoal/60">Ink</span>
-            {(Object.keys(INK_HEX) as InkColor[]).map((color) => (
-              <button
-                key={color}
-                type="button"
-                onClick={() => setInk(color)}
-                aria-label={`${color} ink`}
-                aria-pressed={ink === color}
-                className={`h-6 w-6 rounded-full border-2 transition-transform ${
-                  ink === color ? "border-sky scale-110" : "border-transparent"
-                }`}
-                style={{ backgroundColor: INK_HEX[color] }}
-              />
-            ))}
-          </div>
-
-          {/* Pad */}
-          <div className="relative">
-            <canvas
-              ref={canvasRef}
-              className="w-full h-40 rounded-xl border border-dashed border-gray-300 bg-ivory/40 touch-none"
-              aria-label="Signature pad — draw your signature"
+          {/* Consent gate */}
+          <label className="flex items-start gap-3 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={consented}
+              onChange={(e) => setConsented(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded"
+              style={{ accentColor: "#51ADDF" }}
             />
-            {!hasDrawn && (
-              <p className="pointer-events-none absolute inset-x-0 bottom-3 text-center text-xs text-charcoal/35">
-                Draw your signature here
-              </p>
-            )}
-            {/* ✕ / ✓ — only once drawing has begun */}
-            {hasDrawn && (
-              <div className="absolute right-3 top-3 flex gap-2">
-                <button
-                  type="button"
-                  onClick={handleClear}
-                  disabled={submitting}
-                  aria-label="Clear signature"
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white border border-gray-200 text-charcoal shadow-sm hover:bg-gray-50 disabled:opacity-50"
-                >
-                  ✕
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirm}
-                  disabled={submitting}
-                  aria-label="Confirm and sign"
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-cyan text-navy font-bold shadow-sm hover:bg-cyan/85 disabled:opacity-50"
-                >
-                  {submitting ? "…" : "✓"}
-                </button>
-              </div>
-            )}
-          </div>
+            <span className="font-body text-sm text-charcoal" style={{ lineHeight: 1.65 }}>
+              {consentText}
+            </span>
+          </label>
 
-          {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-          {hasDrawn && !error && (
-            <p className="mt-3 text-xs text-charcoal/50">
-              ✓ confirms and signs · ✕ clears the pad
-            </p>
+          {consented && (
+            <div
+              className="mt-6"
+              style={{ animation: "expandDown 0.15s ease-out" }}
+            >
+              <style>{`@keyframes expandDown { from { transform: translateY(-8px); opacity: 0.5; } to { transform: none; opacity: 1; } }`}</style>
+
+              {/* Name + Email */}
+              <div className="grid gap-4 sm:grid-cols-2 mb-5">
+                {[
+                  { id: "signer-name", label: "Your full name", value: name, setter: setName, type: "text" },
+                  { id: "signer-email", label: "Email (receives the executed copy)", value: email, setter: setEmail, type: "email" },
+                ].map(({ id, label, value, setter, type }) => (
+                  <div key={id}>
+                    <label htmlFor={id} className="block font-body font-medium text-charcoal/60 mb-1" style={{ fontSize: 12 }}>
+                      {label}
+                    </label>
+                    <input
+                      id={id}
+                      type={type}
+                      value={value}
+                      onChange={(e) => setter(e.target.value)}
+                      className="w-full font-body text-sm text-charcoal rounded-xl transition-colors"
+                      style={{ border: "1px solid rgba(0,33,57,0.15)", padding: "10px 12px", outline: "none" }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = "#51ADDF"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(81,173,223,0.15)"; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(0,33,57,0.15)"; e.currentTarget.style.boxShadow = "none"; }}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Ink picker */}
+              <div className="flex items-center gap-3 mb-4">
+                <span className="font-body font-medium text-charcoal/60" style={{ fontSize: 12 }}>Ink</span>
+                {(Object.keys(INK_HEX) as InkColor[]).map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    onClick={() => setInk(color)}
+                    aria-label={`${color} ink`}
+                    aria-pressed={ink === color}
+                    className="h-5 w-5 rounded-full transition-transform"
+                    style={{
+                      backgroundColor: INK_HEX[color],
+                      border: ink === color ? "2px solid #51ADDF" : "2px solid transparent",
+                      boxShadow: ink === color ? "0 0 0 2px rgba(81,173,223,0.35)" : "none",
+                      transform: ink === color ? "scale(1.15)" : "none",
+                    }}
+                  />
+                ))}
+              </div>
+
+              {/* Signature canvas */}
+              <div className="relative">
+                {/* Baseline rule */}
+                <div className="absolute bottom-8 left-0 right-0" style={{ height: 1, background: "rgba(0,33,57,0.15)", zIndex: 1 }} />
+                <canvas
+                  ref={canvasRef}
+                  className="w-full touch-none rounded-xl"
+                  style={{
+                    height: 150,
+                    background: "rgba(230,227,226,0.2)",
+                    border: `1px dashed rgba(0,33,57,0.18)`,
+                    display: "block",
+                  }}
+                  aria-label="Signature pad — draw your signature"
+                />
+                {!hasDrawn && (
+                  <p
+                    className="pointer-events-none absolute inset-x-0 font-body"
+                    style={{ bottom: 22, textAlign: "center", fontSize: 12, color: "rgba(73,80,80,0.35)", zIndex: 2 }}
+                  >
+                    Draw your signature here
+                  </p>
+                )}
+                {/* ✕ / ✓ buttons — appear after first stroke, top-right of canvas */}
+                {hasDrawn && (
+                  <div className="absolute right-3 top-3 flex gap-2" style={{ zIndex: 3 }}>
+                    <button
+                      type="button"
+                      onClick={handleClear}
+                      disabled={submitting}
+                      aria-label="Clear signature"
+                      className="flex items-center justify-center rounded-full font-body font-bold transition-colors disabled:opacity-50"
+                      style={{
+                        width: 36, height: 36,
+                        background: "#fff",
+                        border: "1px solid rgba(0,33,57,0.18)",
+                        color: "#002139",
+                        boxShadow: "0 1px 4px rgba(0,33,57,0.1)",
+                        cursor: "pointer",
+                        fontSize: 15,
+                      }}
+                    >
+                      ✕
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleConfirm}
+                      disabled={submitting}
+                      aria-label="Confirm and sign"
+                      className="flex items-center justify-center rounded-full font-body font-bold transition-colors disabled:opacity-50"
+                      style={{
+                        width: 36, height: 36,
+                        background: "#2CCBE6",
+                        border: "none",
+                        color: "#002139",
+                        boxShadow: "0 1px 4px rgba(44,203,230,0.3)",
+                        cursor: submitting ? "wait" : "pointer",
+                        fontSize: 15,
+                      }}
+                    >
+                      {submitting ? "…" : "✓"}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {error && <p className="font-body text-sm text-red-600 mt-3">{error}</p>}
+
+              <p
+                className="font-body mt-4"
+                style={{ fontSize: 13, color: "rgba(73,80,80,0.55)", lineHeight: 1.5 }}
+              >
+                Signing locks this document for both parties. You&apos;ll both receive the executed PDF by email.
+              </p>
+            </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

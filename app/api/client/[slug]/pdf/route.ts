@@ -43,7 +43,8 @@ export async function GET(
     return new NextResponse("No visible version", { status: 404 });
   }
 
-  const buffer = await renderDraftPDF(doc, version);
+  const clientOrg = doc.clients?.organization ?? doc.clients?.name ?? undefined;
+  const buffer = await renderDraftPDF(doc, version, clientOrg);
 
   // NextResponse accepts Uint8Array; Buffer extends Uint8Array so this is safe
   return new NextResponse(new Uint8Array(buffer), {

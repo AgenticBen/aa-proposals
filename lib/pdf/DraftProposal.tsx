@@ -9,102 +9,176 @@ import {
 import type { Document as DocType, Version, Section } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
-// Styles
+// Design tokens matching the in-app look
 // ---------------------------------------------------------------------------
+
+const NAVY = "#002139";
+const CHARCOAL = "#495050";
+const ICY = "#9DE2F2";
+const WHITE = "#FFFFFF";
+const LINE = "rgba(0,33,57,0.1)";
 
 const S = StyleSheet.create({
   page: {
     paddingTop: 0,
     paddingHorizontal: 0,
-    paddingBottom: 64,
+    paddingBottom: 56,
     fontFamily: "Helvetica",
     fontSize: 10,
-    color: "#495050",
+    color: CHARCOAL,
+    backgroundColor: WHITE,
   },
-  headerBand: {
-    backgroundColor: "#002139",
+
+  // ── Cover band ──────────────────────────────────────────────────────────
+  coverBand: {
+    backgroundColor: NAVY,
     paddingHorizontal: 56,
-    paddingTop: 36,
-    paddingBottom: 28,
+    paddingTop: 40,
+    paddingBottom: 36,
+    minHeight: 160,
   },
-  eyebrow: {
-    color: "#9DE2F2",
+  coverWordmark: {
+    fontSize: 9,
+    color: "#51ADDF",
+    fontFamily: "Helvetica",
+    marginBottom: 28,
+    letterSpacing: 0.5,
+  },
+  coverEyebrow: {
+    color: "#2CCBE6",
     fontSize: 7,
-    letterSpacing: 2,
+    letterSpacing: 2.5,
     textTransform: "uppercase",
-    marginBottom: 8,
+    marginBottom: 10,
   },
-  docTitle: {
-    color: "#FFFFFF",
-    fontSize: 20,
+  coverTitle: {
+    color: WHITE,
+    fontSize: 26,
     fontFamily: "Helvetica-Bold",
+    lineHeight: 1.1,
+    maxWidth: 380,
   },
+  coverMeta: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 10,
+    marginTop: 14,
+  },
+
+  // ── Body ─────────────────────────────────────────────────────────────────
   bodyArea: {
     paddingHorizontal: 56,
-    paddingTop: 28,
+    paddingTop: 32,
   },
   sectionContainer: {
-    marginBottom: 22,
+    marginBottom: 28,
   },
   sectionHeading: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: "Helvetica-Bold",
-    color: "#002139",
-    marginBottom: 6,
-    paddingBottom: 4,
-    borderBottomColor: "#E6E3E2",
+    color: NAVY,
+    marginBottom: 8,
+  },
+  sectionDivider: {
+    borderBottomColor: LINE,
     borderBottomWidth: 1,
+    marginBottom: 8,
   },
   sectionBody: {
-    fontSize: 10,
+    fontSize: 10.5,
     lineHeight: 1.65,
-    color: "#495050",
+    color: CHARCOAL,
   },
+  bulletRow: {
+    flexDirection: "row",
+    marginBottom: 4,
+  },
+  bulletDot: {
+    fontSize: 10.5,
+    color: ICY,
+    width: 14,
+    marginTop: 0,
+  },
+  bulletText: {
+    fontSize: 10.5,
+    lineHeight: 1.6,
+    color: CHARCOAL,
+    flex: 1,
+  },
+
+  // ── Footer ───────────────────────────────────────────────────────────────
   footer: {
     position: "absolute",
-    bottom: 22,
+    bottom: 18,
     left: 56,
     right: 56,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    borderTopColor: "#E6E3E2",
+    borderTopColor: LINE,
     borderTopWidth: 1,
     paddingTop: 8,
   },
   footerBrand: {
-    fontSize: 8,
-    color: "#495050",
+    fontSize: 7.5,
+    color: "rgba(73,80,80,0.6)",
   },
   footerDraft: {
-    fontSize: 8,
-    color: "#CC3333",
+    fontSize: 7.5,
+    color: "#CC4444",
     fontFamily: "Helvetica-Bold",
+    letterSpacing: 0.5,
   },
   footerPage: {
-    fontSize: 8,
-    color: "#495050",
+    fontSize: 7.5,
+    color: "rgba(73,80,80,0.6)",
   },
 });
 
 // ---------------------------------------------------------------------------
-// Markdown → plain text for PDF rendering
+// Markdown → structured plain text with basic bullet parsing
 // ---------------------------------------------------------------------------
 
-function stripMarkdown(md: string): string {
-  return md
-    .replace(/^```[\s\S]*?^```/gm, "")   // fenced code blocks
-    .replace(/`(.+?)`/g, "$1")            // inline code
-    .replace(/^#{1,6}\s+/gm, "")          // headings
-    .replace(/\*\*(.+?)\*\*/g, "$1")      // bold
-    .replace(/\*(.+?)\*/g, "$1")          // italic
-    .replace(/~~(.+?)~~/g, "$1")          // strikethrough
-    .replace(/^\s*[-*+]\s+/gm, "\u2022 ") // unordered list → bullet
-    .replace(/^\s*>\s+/gm, "")            // blockquotes
-    .replace(/^---+$/gm, "")              // horizontal rules
-    .replace(/\[(.+?)\]\(.+?\)/g, "$1")   // links
-    .replace(/\n{3,}/g, "\n\n")           // collapse excess blank lines
-    .trim();
+interface TextBlock {
+  type: "paragraph" | "bullet";
+  text: string;
+}
+
+function parseMarkdown(md: string): TextBlock[] {
+  const blocks: TextBlock[] = [];
+  const lines = md
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/`(.+?)`/g, "$1")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/\*(.+?)\*/g, "$1")
+    .replace(/~~(.+?)~~/g, "$1")
+    .replace(/^\s*>\s+/gm, "")
+    .replace(/^---+$/gm, "")
+    .replace(/\[(.+?)\]\(.+?\)/g, "$1")
+    .split("\n");
+
+  let para = "";
+
+  const flushPara = () => {
+    const t = para.trim();
+    if (t) blocks.push({ type: "paragraph", text: t });
+    para = "";
+  };
+
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    const bulletMatch = line.match(/^\s*[-*+]\s+(.*)/);
+    if (bulletMatch) {
+      flushPara();
+      blocks.push({ type: "bullet", text: bulletMatch[1].trim() });
+    } else if (line === "") {
+      flushPara();
+    } else {
+      para += (para ? " " : "") + line.trim();
+    }
+  }
+  flushPara();
+  return blocks;
 }
 
 // ---------------------------------------------------------------------------
@@ -114,42 +188,66 @@ function stripMarkdown(md: string): string {
 function DraftProposalDocument({
   doc,
   version,
+  clientOrg,
 }: {
   doc: DocType;
   version: Version;
+  clientOrg?: string;
 }) {
   const sorted = [...(version.sections as Section[])].sort(
     (a, b) => a.order - b.order
   );
 
+  const preparedDate = new Date(doc.created_at).toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+
   return (
     <Document>
       <Page size="LETTER" style={S.page}>
-        {/* Navy header band */}
-        <View style={S.headerBand}>
-          <Text style={S.eyebrow}>Agentic Arc — Proposal</Text>
-          <Text style={S.docTitle}>{doc.title}</Text>
+        {/* ── Cover band ── */}
+        <View style={S.coverBand}>
+          <Text style={S.coverWordmark}>AGENTIC ARC</Text>
+          <Text style={S.coverEyebrow}>PROPOSAL</Text>
+          <Text style={S.coverTitle}>{doc.title}</Text>
+          <Text style={S.coverMeta}>
+            {clientOrg ? `Prepared for ${clientOrg} · ` : ""}{preparedDate}
+          </Text>
         </View>
 
-        {/* Section content */}
+        {/* ── Section content ── */}
         <View style={S.bodyArea}>
-          {sorted.map((section) => (
-            <View key={section.id} style={S.sectionContainer} wrap={false}>
-              <Text style={S.sectionHeading}>{section.heading}</Text>
-              <Text style={S.sectionBody}>{stripMarkdown(section.body_md)}</Text>
-            </View>
-          ))}
+          {sorted.map((section) => {
+            const blocks = parseMarkdown(section.body_md);
+            return (
+              <View key={section.id} style={S.sectionContainer} wrap={false}>
+                <Text style={S.sectionHeading}>{section.heading}</Text>
+                <View style={S.sectionDivider} />
+                {blocks.map((block, i) =>
+                  block.type === "bullet" ? (
+                    <View key={i} style={S.bulletRow}>
+                      <Text style={S.bulletDot}>·</Text>
+                      <Text style={S.bulletText}>{block.text}</Text>
+                    </View>
+                  ) : (
+                    <Text key={i} style={[S.sectionBody, { marginBottom: 6 }]}>
+                      {block.text}
+                    </Text>
+                  )
+                )}
+              </View>
+            );
+          })}
         </View>
 
-        {/* Footer — fixed on every page */}
+        {/* ── Footer — fixed on every page ── */}
         <View style={S.footer} fixed>
           <Text style={S.footerBrand}>Agentic Arc — Proposals</Text>
-          <Text style={S.footerDraft}>DRAFT — not executed</Text>
+          <Text style={S.footerDraft}>DRAFT — NOT EXECUTED</Text>
           <Text
             style={S.footerPage}
-            render={({ pageNumber, totalPages }) =>
-              `Page ${pageNumber} of ${totalPages}`
-            }
+            render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}
           />
         </View>
       </Page>
@@ -158,14 +256,15 @@ function DraftProposalDocument({
 }
 
 // ---------------------------------------------------------------------------
-// Server-side render helper (called from route handler)
+// Server-side render helper
 // ---------------------------------------------------------------------------
 
 export async function renderDraftPDF(
   doc: DocType,
-  version: Version
+  version: Version,
+  clientOrg?: string
 ): Promise<Buffer> {
   return renderToBuffer(
-    <DraftProposalDocument doc={doc} version={version} />
+    <DraftProposalDocument doc={doc} version={version} clientOrg={clientOrg} />
   );
 }

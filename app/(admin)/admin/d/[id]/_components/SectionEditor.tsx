@@ -21,6 +21,12 @@ export function SectionEditor({
   const [visibleToClient, setVisibleToClient] = useState(false);
   const [importText, setImportText] = useState("");
   const [showImport, setShowImport] = useState(false);
+  const [showGenerate, setShowGenerate] = useState(false);
+  const [genDescription, setGenDescription] = useState("");
+  const [genServices, setGenServices] = useState("");
+  const [genBudget, setGenBudget] = useState("");
+  const [generating, setGenerating] = useState(false);
+  const [genError, setGenError] = useState("");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [isPending, startTransition] = useTransition();
 
@@ -56,6 +62,32 @@ export function SectionEditor({
     setSections((prev) =>
       prev.filter((_, i) => i !== idx).map((s, i) => ({ ...s, order: i }))
     );
+  }
+
+  async function handleGenerate() {
+    setGenerating(true);
+    setGenError("");
+    try {
+      const res = await fetch(`/api/admin/documents/${documentId}/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          description: genDescription,
+          services: genServices,
+          budget_range: genBudget,
+        }),
+      });
+      if (res.status === 409) { setGenError("Document is locked."); return; }
+      if (!res.ok) { setGenError("Generation failed — check that ANTHROPIC_API_KEY is set."); return; }
+      const { markdown } = await res.json() as { markdown: string };
+      setImportText(markdown);
+      setShowGenerate(false);
+      setShowImport(true);
+    } catch {
+      setGenError("Something went wrong. Please try again.");
+    } finally {
+      setGenerating(false);
+    }
   }
 
   async function handleImport() {
@@ -100,20 +132,92 @@ export function SectionEditor({
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <p className="font-body text-sm text-charcoal/60">
           Editing from v{latestVersionNumber} — save creates a new version.
         </p>
         {!locked && (
-          <button
-            type="button"
-            onClick={() => setShowImport((v) => !v)}
-            className="font-body text-sm text-sky hover:underline"
-          >
-            {showImport ? "Cancel import" : "Import markdown"}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => { setShowGenerate((v) => !v); setShowImport(false); }}
+              className="font-body text-sm font-medium text-cyan hover:underline"
+            >
+              {showGenerate ? "Cancel" : "Generate with AI"}
+            </button>
+            <span className="text-charcoal/20">|</span>
+            <button
+              type="button"
+              onClick={() => { setShowImport((v) => !v); setShowGenerate(false); }}
+              className="font-body text-sm text-sky hover:underline"
+            >
+              {showImport ? "Cancel import" : "Import markdown"}
+            </button>
+          </div>
         )}
       </div>
+
+      {/* Generate with AI panel */}
+      {showGenerate && !locked && (
+        <div className="bg-navy/5 rounded-xl p-4 border border-navy/10 space-y-3">
+          <div>
+            <p className="font-body text-sm font-semibold text-navy mb-0.5">Generate proposal with Claude</p>
+            <p className="font-body text-xs text-charcoal/50">
+              Claude will write a full proposal draft. Review it in the import panel before pushing to sections.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <div>
+              <label className="block font-body text-xs font-medium text-charcoal/60 mb-1">
+                Engagement description <span className="text-charcoal/40">(what problem are we solving?)</span>
+              </label>
+              <textarea
+                value={genDescription}
+                onChange={(e) => setGenDescription(e.target.value)}
+                rows={3}
+                className="w-full border border-gray-300 rounded-xl px-3 py-2 font-body text-sm focus:outline-none focus:ring-2 focus:ring-cyan/40 resize-none"
+                placeholder="e.g. Help a 12-person marketing agency automate their content production pipeline using AI tools..."
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block font-body text-xs font-medium text-charcoal/60 mb-1">Services / focus areas</label>
+                <input
+                  type="text"
+                  value={genServices}
+                  onChange={(e) => setGenServices(e.target.value)}
+                  className="w-full border border-gray-300 rounded-xl px-3 py-2 font-body text-sm focus:outline-none focus:ring-2 focus:ring-cyan/40"
+                  placeholder="e.g. Workflow automation, AI agents"
+                />
+              </div>
+              <div>
+                <label className="block font-body text-xs font-medium text-charcoal/60 mb-1">Approximate budget range</label>
+                <input
+                  type="text"
+                  value={genBudget}
+                  onChange={(e) => setGenBudget(e.target.value)}
+                  className="w-full border border-gray-300 rounded-xl px-3 py-2 font-body text-sm focus:outline-none focus:ring-2 focus:ring-cyan/40"
+                  placeholder="e.g. $8,000–$12,000"
+                />
+              </div>
+            </div>
+          </div>
+          {genError && <p className="font-body text-xs text-red-600">{genError}</p>}
+          <button
+            type="button"
+            onClick={handleGenerate}
+            disabled={generating}
+            className="bg-navy text-white font-body text-sm font-semibold px-4 py-2 rounded-xl disabled:opacity-50 flex items-center gap-2"
+          >
+            {generating ? (
+              <>
+                <span className="inline-block w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Generating…
+              </>
+            ) : "Generate draft →"}
+          </button>
+        </div>
+      )}
 
       {/* Import panel */}
       {showImport && !locked && (
