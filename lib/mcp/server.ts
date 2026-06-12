@@ -281,6 +281,83 @@ export function createProposalMcpServer(appUrl: string): McpServer {
     }
   );
 
+  // ── get_proposal_content ────────────────────────────────────────────────────
+  server.registerTool(
+    "get_proposal_content",
+    {
+      description:
+        "Pull the current content of a proposal into Claude as markdown. Use this to read what's already in the app so you can edit it here and push a revised version back with import_proposal_content.",
+      inputSchema: {
+        document_id: z
+          .string()
+          .describe("Proposal ID — from list_proposals"),
+        version: z
+          .number()
+          .optional()
+          .describe(
+            "Specific version number to pull. Omit to get the latest version regardless of visibility."
+          ),
+      },
+    },
+    async ({ document_id, version }) => {
+      const supabase = createServerClient();
+
+      const { data: doc, error: docErr } = await supabase
+        .from("documents")
+        .select("title, status, slug, clients(name, organization)")
+        .eq("id", document_id)
+        .maybeSingle();
+      if (docErr || !doc) return err("Document not found.");
+
+      let versionQuery = supabase
+        .from("versions")
+        .select("version_number, sections, note, visible_to_client, created_at")
+        .eq("document_id", document_id);
+
+      if (version != null) {
+        versionQuery = versionQuery.eq("version_number", version);
+      } else {
+        versionQuery = versionQuery
+          .order("version_number", { ascending: false })
+          .limit(1);
+      }
+
+      const { data: ver, error: verErr } = await versionQuery.maybeSingle();
+      if (verErr || !ver) {
+        return err(
+          version != null
+            ? `Version ${version} not found.`
+            : "No versions exist yet. Use import_proposal_content to add content."
+        );
+      }
+
+      type RawSection = { heading: string; body_md: string; order: number };
+      const sections = (ver.sections as RawSection[]).sort(
+        (a, b) => a.order - b.order
+      );
+
+      const markdown = sections
+        .map((s) => `## ${s.heading}\n\n${s.body_md}`)
+        .join("\n\n");
+
+      const client = doc.clients as { name?: string; organization?: string } | null;
+
+      return ok({
+        document_id,
+        title: doc.title,
+        status: doc.status,
+        client: client?.organization ?? client?.name ?? null,
+        client_link: `${appUrl}/p/${doc.slug}`,
+        version_number: ver.version_number,
+        version_note: ver.note,
+        visible_to_client: ver.visible_to_client,
+        section_count: sections.length,
+        section_headings: sections.map((s) => s.heading),
+        markdown,
+      });
+    }
+  );
+
   // ── import_proposal_content ─────────────────────────────────────────────────
   server.registerTool(
     "import_proposal_content",
